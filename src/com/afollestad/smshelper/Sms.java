@@ -54,15 +54,18 @@ public class Sms {
 		public final static String SEEN = "seen";
 	}
 	
-	public static Sms newSms(Context context, Conversation convo, String body, boolean outgoing, ContactCache cache) {
+	public static Sms newSms(Context context, Long person, Long threadId, String body, boolean outgoing, ContactCache cache) {
 		Calendar now = Calendar.getInstance();
-		Contact contact = Contact.getFromId(context, convo.getRecipientIds().get(0), cache);
+		Contact contact = Contact.getFromId(context, person, cache);
+		if(contact == null) {
+			return null;
+		}
 		Sms msg = new Sms();
 		msg.date = now.getTimeInMillis();
 		msg.dateSent = now.getTimeInMillis();
-		msg.person = outgoing ? 0 : convo.getRecipientIds().get(0);
+		msg.person = person;
 		msg.address = contact.getNumber();
-		msg.threadId = convo.getId();
+		msg.threadId = threadId;
 		msg.body = body;
 		msg.type = (outgoing ? TYPE_SENT : TYPE_RECEIVED);
 		return msg;
@@ -237,12 +240,14 @@ public class Sms {
 				new String[] { Long.toString(this.getId()) });
 	}
 	
-	public Uri save(Context context) {
+	public Sms save(Context context) {
 		Uri uri = isOutgoing() ? Constants.SMS_SENT : Constants.SMS_INBOX;
 		Uri row = context.getContentResolver().insert(uri, getContentValues(false));
 		Cursor cursor = context.getContentResolver().query(row, null, null, null, null);
-		System.out.println(cursor.getColumnNames());
-		return row;
+		cursor.moveToFirst();
+		Sms toreturn = Sms.fromCursor(cursor);
+		cursor.close();
+		return toreturn;
 	}
 	
 	/**
