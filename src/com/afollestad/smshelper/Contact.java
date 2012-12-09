@@ -19,14 +19,18 @@ public class Contact {
 		}
 		Uri uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(number));
 		Cursor cursor = context.getContentResolver().query(uri, new String[] { PhoneLookup.DISPLAY_NAME, PhoneLookup._ID }, null, null, null);
-		cursor.moveToFirst();
+		if(!cursor.moveToFirst()) {
+			return null;
+		}
 		Long id = cursor.getLong(cursor.getColumnIndex(PhoneLookup._ID));
 		Contact toreturn = new Contact(
 				id,
 				cursor.getString(cursor.getColumnIndex(PhoneLookup.DISPLAY_NAME)),
 				number);
 		cursor.close();
-		cache.put(id, toreturn);
+		if(cache != null) {
+			cache.put(id, toreturn);
+		}
 		return toreturn;
 	}
 
@@ -36,10 +40,14 @@ public class Contact {
 		}
 		Cursor cursor = context.getContentResolver().query(
 				Constants.ALL_CANONICAL, null, "_id=" + id, null, null);
-		cursor.moveToFirst();
+		if(!cursor.moveToFirst()) {
+			return null;
+		}
 		Contact toreturn = getFromNumber(context, cursor.getString(1), cache);
 		cursor.close();
-		cache.put(id, toreturn);
+		if(cache != null) {
+			cache.put(id, toreturn);		
+		}
 		return toreturn;
 	}
 

@@ -7,7 +7,6 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.telephony.SmsMessage;
-import android.telephony.TelephonyManager;
 
 public class Sms {
 
@@ -240,7 +239,10 @@ public class Sms {
 	
 	public Uri save(Context context) {
 		Uri uri = isOutgoing() ? Constants.SMS_SENT : Constants.SMS_INBOX;
-		return context.getContentResolver().insert(uri, getContentValues(false));
+		Uri row = context.getContentResolver().insert(uri, getContentValues(false));
+		Cursor cursor = context.getContentResolver().query(row, null, null, null, null);
+		System.out.println(cursor.getColumnNames());
+		return row;
 	}
 	
 	/**
