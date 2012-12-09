@@ -213,11 +213,14 @@ public class Sms {
 		return context.getContentResolver().insert(uri, getContentValues(false));
 	}
 	
+	/**
+	 * This doesn't work yet.
+	 */
 	public Uri saveDraft(Context context) {
 		return context.getContentResolver().insert(Constants.SMS_DRAFTS, getContentValues(true));
 	}
 	
 	public int delete(Context context) {
-		return context.getContentResolver().delete(Constants.SMS_DRAFTS, Sms.Column.ID + " = ?", new String[] { Long.toString(getId()) });
+		return context.getContentResolver().delete(Constants.SMS_ALL, Sms.Column.ID + " = ?", new String[] { Long.toString(getId()) });
 	}
 }
