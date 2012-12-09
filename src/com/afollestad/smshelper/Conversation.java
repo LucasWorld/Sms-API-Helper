@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Calendar;
 
@@ -12,8 +13,10 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.util.Base64;
 
-public class Conversation {
+public class Conversation implements Serializable {
 	
+	private static final long serialVersionUID = 6251878782078550182L;
+
 	public static class Column {
 		/**
 		 * The ID of the conversation row.
@@ -89,6 +92,16 @@ public class Conversation {
 		return toreturn.toArray(new Conversation[0]);
 	}
 	
+	public static Conversation[] getAllUnread(Context context) {
+		Cursor cursor = context.getContentResolver().query(Constants.ALL_CONVERSATIONS_URI, 
+				Constants.ALL_CONVERSATIONS_PROJECTION, "read = 0", null, null);
+		ArrayList<Conversation> toreturn = new ArrayList<Conversation>(); 
+        while(cursor.moveToNext()) {
+        	toreturn.add(Conversation.fromCursor(context, cursor));
+        }
+		return toreturn.toArray(new Conversation[0]);
+	}
+	
 	private long id;
 	private long date;
 	private long messageCount;
@@ -100,6 +113,14 @@ public class Conversation {
 	private int error;
 	private int hasAttachment;
 	private ArrayList<Sms> smsMessages;
+
+	/**
+	 * This only temporarily adds an SMS to this conversations cache, it doesn't save to the actual conversation;
+	 * use {@link Sms#save(Context)} for that.
+	 */
+	public void addMessage(Sms msg) {
+		smsMessages.add(msg);
+	}
 	
 	public long getId() {
 		return id;
@@ -115,6 +136,10 @@ public class Conversation {
 		return messageCount;
 	}
 
+	public Contact getRecipient(Context context, ContactCache cache) {
+		return Contact.getFromId(context, this.getRecipientIds().get(0), cache);
+	}
+	
 	public ArrayList<Long> getRecipientIds() {
 		ArrayList<Long> toReturn = new ArrayList<Long>();
 		for(String id : recipientIds.split(" ")) {
@@ -142,7 +167,7 @@ public class Conversation {
 	public boolean isError() {
 		return (error == 1);
 	}
-
+	
 	public boolean hasAttachment() {
 		return (hasAttachment == 1);
 	}

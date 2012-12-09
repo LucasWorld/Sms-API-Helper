@@ -27,5 +27,7 @@ public class Constants {
 	
 	public static final Uri SMS_ALL = Uri.parse("content://sms");
 
+	public static final Uri SMS_FAILED = Uri.parse("content://sms/failed");
+	
 	public static Uri ALL_CANONICAL = Uri.parse("content://mms-sms/canonical-addresses");
 }

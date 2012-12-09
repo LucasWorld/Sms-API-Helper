@@ -1,8 +1,14 @@
 package com.afollestad.smshelper;
 
+import java.io.ByteArrayInputStream;
+
+import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.PhoneLookup;
 
 public class Contact {
@@ -60,10 +66,34 @@ public class Contact {
 	}
 
 	public String getName() {
+		if(name == null || name.trim().isEmpty()) {
+			return number;
+		}
 		return name;
 	}
 
 	public String getNumber() {
 		return number;
 	}
+	
+	public Bitmap getProfilePic(Context context) {
+	     Uri contactUri = ContentUris.withAppendedId(Contacts.CONTENT_URI, getId());
+	     Uri photoUri = Uri.withAppendedPath(contactUri, Contacts.Photo.CONTENT_DIRECTORY);
+	     Cursor cursor = context.getContentResolver().query(photoUri,
+	          new String[] { Contacts.Photo.PHOTO }, null, null, null);
+	     if (cursor == null) {
+	         return null;
+	     }
+	     try {
+	         if (cursor.moveToFirst()) {
+	             byte[] data = cursor.getBlob(0);
+	             if (data != null) {
+	                 return BitmapFactory.decodeStream(new ByteArrayInputStream(data));
+	             }
+	         }
+	     } finally {
+	         cursor.close();
+	     }
+	     return null;
+	 }
 }

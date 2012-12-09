@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.Calendar;
 
 import android.content.ContentValues;
@@ -13,7 +14,9 @@ import android.net.Uri;
 import android.telephony.SmsMessage;
 import android.util.Base64;
 
-public class Sms {
+public class Sms implements Serializable {
+
+	private static final long serialVersionUID = -6711776602850418239L;
 
 	private Sms() {		
 	}
@@ -98,9 +101,9 @@ public class Sms {
 		return toreturn;
 	}
 	
-	/*private static String stripAddress(String address) {
+	public static String stripAddress(String address) {
 		return address.replace("(", "").replace(")", "").replace("-", "").replace(" ", "");
-	}*/
+	}
 	
 	public static Sms fromStockSms(Context context, SmsMessage sms, boolean outgoing) {
 		/*TelephonyManager tele = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
@@ -158,6 +161,10 @@ public class Sms {
 	
 	public long getPerson() {
 		return person;
+	}
+	
+	public Contact getContact(Context context, ContactCache cache) {
+		return Contact.getFromNumber(context, this.getAddress(), cache);
 	}
 	
 	public Calendar getDate() {
@@ -260,6 +267,14 @@ public class Sms {
 	 */
 	public Uri saveDraft(Context context) {
 		return context.getContentResolver().insert(Constants.SMS_DRAFTS, getContentValues(true));
+	}
+	
+	public Uri saveError(Context context) {
+		return context.getContentResolver().insert(Constants.SMS_FAILED, getContentValues(false));
+	}
+	
+	public int deleteError(Context context) {
+		return context.getContentResolver().delete(Constants.SMS_FAILED, Sms.Column.ID + " = ?", new String[] { Long.toString(getId()) });
 	}
 	
 	public int delete(Context context) {
