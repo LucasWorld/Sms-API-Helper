@@ -6,6 +6,8 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.telephony.SmsMessage;
+import android.telephony.TelephonyManager;
 
 public class Sms {
 
@@ -23,11 +25,15 @@ public class Sms {
 	private int status = -1;
 	private int type = 1;
 	private int replyPathPresent;
+	private String serviceCenter;
 	private String subject;
 	private String body;
 	private int locked;
 	private int errorCode;
 	private int seen;
+	
+	public final static int TYPE_SENT = 2;
+	public final static int TYPE_RECEIVED = 1;
 	
 	public static class Column {
 		public final static String ID = "_id";
@@ -59,7 +65,7 @@ public class Sms {
 		msg.address = contact.getNumber();
 		msg.threadId = convo.getId();
 		msg.body = body;
-		msg.type = (outgoing ? 2 : 1);
+		msg.type = (outgoing ? TYPE_SENT : TYPE_RECEIVED);
 		return msg;
 	}
 	
@@ -78,10 +84,30 @@ public class Sms {
 		toreturn.replyPathPresent = cursor.getInt(cursor.getColumnIndex(Column.REPLY_PATH_PRESENT));
 		toreturn.subject = cursor.getString(cursor.getColumnIndex(Column.SUBJECT));
 		toreturn.body = cursor.getString(cursor.getColumnIndex(Column.BODY));
-		//TODO toreturn.serviceCenter =
+		toreturn.serviceCenter = cursor.getString(cursor.getColumnIndex(Column.SERVICE_CENTER)); 
 		toreturn.locked = cursor.getInt(cursor.getColumnIndex(Column.LOCKED));
 		toreturn.errorCode = cursor.getInt(cursor.getColumnIndex(Column.ERROR_CODE));
 		toreturn.seen = cursor.getInt(cursor.getColumnIndex(Column.SEEN));
+		return toreturn;
+	}
+	
+	/*private static String stripAddress(String address) {
+		return address.replace("(", "").replace(")", "").replace("-", "").replace(" ", "");
+	}*/
+	
+	public static Sms fromStockSms(Context context, SmsMessage sms, boolean outgoing) {
+		/*TelephonyManager tele = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
+		String mynumber = tele.getLine1Number();*/
+		Sms toreturn = new Sms();
+		toreturn.body = sms.getDisplayMessageBody();
+		toreturn.address = sms.getDisplayOriginatingAddress();
+		toreturn.status = sms.getStatus();
+		toreturn.date = sms.getTimestampMillis();
+		toreturn.dateSent = sms.getTimestampMillis();
+		toreturn.protocol = sms.getProtocolIdentifier();
+		toreturn.replyPathPresent = sms.isReplyPathPresent() ? 1 : 0;
+		toreturn.serviceCenter = sms.getServiceCenterAddress();
+		toreturn.type = outgoing ? TYPE_SENT : TYPE_RECEIVED;
 		return toreturn;
 	}
 	
@@ -102,12 +128,12 @@ public class Sms {
 		val.put(Column.BODY, this.getBody());
 		val.put(Column.LOCKED, this.isLocked() ? 1 : 0);
 		val.put(Column.SEEN, this.isSeen() ? 1 : 0);
-		//TODO val.put(Column.SERVICE_CENTER, null);
-		//val.put(Column.PROTOCOL, this.getProtocol());
-		//val.put(Column.STATUS, this.getStatus());
-		//val.put(Column.REPLY_PATH_PRESENT, this.getReplyPathPresent());
-		//val.put(Column.SUBJECT, this.getSubject());
-		//val.put(Column.ERROR_CODE, this.getErrorCode());
+		val.put(Column.SERVICE_CENTER, this.getServiceCenter());
+		val.put(Column.PROTOCOL, this.getProtocol());
+		val.put(Column.STATUS, this.getStatus());
+		val.put(Column.REPLY_PATH_PRESENT, this.isReplyPathPresent() ? 1 : 0);
+		val.put(Column.SUBJECT, this.getSubject());
+		val.put(Column.ERROR_CODE, this.getErrorCode());
 		return val;
 	}
 
@@ -163,8 +189,8 @@ public class Sms {
 		return (getType() == 2);
 	}
 	
-	public int getReplyPathPresent() { 
-		return replyPathPresent;
+	public boolean isReplyPathPresent() { 
+		return (replyPathPresent == 1);
 	}
 	
 	public String getSubject() {
@@ -175,6 +201,10 @@ public class Sms {
 		return body;
 	}
 
+	public String getServiceCenter() {
+		return serviceCenter;
+	}
+	
 	public boolean isLocked() {
 		return (locked == 1);
 	}
