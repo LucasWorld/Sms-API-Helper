@@ -1,5 +1,9 @@
 package com.afollestad.smshelper;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.Calendar;
 
 import android.content.ContentValues;
@@ -7,6 +11,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.telephony.SmsMessage;
+import android.util.Base64;
 
 public class Sms {
 
@@ -259,5 +264,32 @@ public class Sms {
 	
 	public int delete(Context context) {
 		return context.getContentResolver().delete(Constants.SMS_ALL, Sms.Column.ID + " = ?", new String[] { Long.toString(getId()) });
+	}
+	
+	public static Sms deserializeObject(String input) {
+		try {
+			byte[] data = Base64.decode(input, Base64.DEFAULT);
+			ObjectInputStream ois = new ObjectInputStream( 
+					new ByteArrayInputStream(data));
+			Object o = ois.readObject();
+			ois.close();
+			return (Sms)o;
+		} catch(Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+
+	public String serializeObject() {
+		try{
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			ObjectOutputStream oos = new ObjectOutputStream(baos);
+			oos.writeObject(this);
+			oos.close();
+			return Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT);
+		} catch(Exception e){
+			e.printStackTrace();
+			return "";
+		}
 	}
 }

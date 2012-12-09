@@ -1,11 +1,16 @@
 package com.afollestad.smshelper;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Calendar;
 
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.util.Base64;
 
 public class Conversation {
 	
@@ -161,5 +166,32 @@ public class Conversation {
 	public int delete(Context context) {
 		Uri uri = Uri.withAppendedPath(Constants.CONVERSATION_SMS_URI, Long.toString(this.getId()));
 		return context.getContentResolver().delete(uri, null, null);
+	}
+	
+	public static Sms deserializeObject(String input) {
+		try {
+			byte[] data = Base64.decode(input, Base64.DEFAULT);
+			ObjectInputStream ois = new ObjectInputStream( 
+					new ByteArrayInputStream(data));
+			Object o = ois.readObject();
+			ois.close();
+			return (Sms)o;
+		} catch(Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+
+	public String serializeObject() {
+		try{
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			ObjectOutputStream oos = new ObjectOutputStream(baos);
+			oos.writeObject(this);
+			oos.close();
+			return Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT);
+		} catch(Exception e){
+			e.printStackTrace();
+			return "";
+		}
 	}
 }
