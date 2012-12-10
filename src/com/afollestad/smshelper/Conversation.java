@@ -172,7 +172,7 @@ public class Conversation implements Serializable {
 		return (hasAttachment == 1);
 	}
 	
-	public ArrayList<Sms> getSmsMessages(Context context) {
+	public ArrayList<Sms> getMessages(Context context) {
 		if(smsMessages == null) {
 			smsMessages = new ArrayList<Sms>();
 			Uri uri = Uri.withAppendedPath(Constants.CONVERSATION_SMS_URI, Long.toString(this.getId()));

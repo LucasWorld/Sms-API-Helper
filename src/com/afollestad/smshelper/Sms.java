@@ -6,6 +6,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Calendar;
+import java.util.Comparator;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -14,7 +15,7 @@ import android.net.Uri;
 import android.telephony.SmsMessage;
 import android.util.Base64;
 
-public class Sms implements Serializable {
+public class Sms implements Serializable, Comparable<Sms> {
 
 	private static final long serialVersionUID = -6711776602850418239L;
 
@@ -306,5 +307,26 @@ public class Sms implements Serializable {
 			e.printStackTrace();
 			return "";
 		}
+	}
+	
+	public static class SmsComparator implements Comparator<Sms> {
+
+		@Override
+		public int compare(Sms left, Sms right) {
+			return left.compareTo(right);
+		}
+	}
+	
+	public static class SmsReverseComparator implements Comparator<Sms> {
+
+		@Override
+		public int compare(Sms left, Sms right) {
+			return right.compareTo(left);
+		}
+	}
+
+	@Override
+	public int compareTo(Sms other) {
+		return getDate().compareTo(other.getDate());
 	}
 }
