@@ -1,15 +1,12 @@
 package com.afollestad.smshelper;
 
-import java.io.ByteArrayInputStream;
-
 import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
-import android.provider.ContactsContract.Contacts;
+import android.provider.ContactsContract;
 import android.provider.ContactsContract.PhoneLookup;
+import android.telephony.TelephonyManager;
 
 public class Contact {
 
@@ -57,6 +54,11 @@ public class Contact {
 		return toreturn;
 	}
 
+	public static Contact getMe(Context context) {
+		TelephonyManager tele = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
+		return Contact.getFromNumber(context, tele.getLine1Number(), null);
+	}
+
 	private long id;
 	private String name;
 	private String number;
@@ -76,24 +78,24 @@ public class Contact {
 		return number;
 	}
 	
-	public Bitmap getProfilePic(Context context) {
-	     Uri contactUri = ContentUris.withAppendedId(Contacts.CONTENT_URI, getId());
-	     Uri photoUri = Uri.withAppendedPath(contactUri, Contacts.Photo.CONTENT_DIRECTORY);
-	     Cursor cursor = context.getContentResolver().query(photoUri,
-	          new String[] { Contacts.Photo.PHOTO }, null, null, null);
-	     if (cursor == null) {
-	         return null;
-	     }
-	     try {
-	         if (cursor.moveToFirst()) {
-	             byte[] data = cursor.getBlob(0);
-	             if (data != null) {
-	                 return BitmapFactory.decodeStream(new ByteArrayInputStream(data));
-	             }
-	         }
-	     } finally {
-	         cursor.close();
-	     }
-	     return null;
-	 }
+	public Uri getContactUri(Context context) {
+		long lookupId = getId();
+		if(lookupId == 0) {
+			lookupId = Contact.getMe(context).getId();
+		}
+		
+		return ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, lookupId);
+	}
+	
+	public Uri getProfilePic(Context context) {
+		Cursor cursor = context.getContentResolver().query(getContactUri(context), new String[] { 
+			ContactsContract.Contacts.PHOTO_URI }, null, null, null);
+		cursor.moveToFirst();
+		if(cursor.getType(0) == Cursor.FIELD_TYPE_NULL) {
+			return null;
+		}
+		Uri toreturn = Uri.parse(cursor.getString(0));
+		cursor.close();
+		return toreturn;
+	}
 }

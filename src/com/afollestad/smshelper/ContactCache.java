@@ -2,13 +2,19 @@ package com.afollestad.smshelper;
 
 import java.util.Hashtable;
 
+import android.content.Context;
+
 public class ContactCache {
 
-	public ContactCache() {
+	public ContactCache(Context context) {
 		nameCache = new Hashtable<Long, String>();
 		addressCache = new Hashtable<Long, String>();
+		me = Contact.getMe(context);
+		nameCache.put(0l, me.getName());
+		addressCache.put(0l, me.getNumber());
 	}
 	
+	private Contact me;
 	private Hashtable<Long, String> nameCache;
 	private Hashtable<Long, String> addressCache;
 	
@@ -19,7 +25,6 @@ public class ContactCache {
 		String[] values = addressCache.values().toArray(new String[0]);
 		for(int i = 0; i < values.length; i++) {
 			if(values[i].equals(number)) {
-				System.out.println("Got contact from cache: " + number);
 				return getFromId(addressCache.keySet().toArray(new Long[0])[i]);
 			}
 		}
@@ -31,7 +36,12 @@ public class ContactCache {
 			return null;
 		}
 		System.out.println("Got contact from cache: " + id + " (" + addressCache.get(id).toString() + ")");
-		return new Contact(id, nameCache.get(id), addressCache.get(id));
+		String name = nameCache.get(id);
+		String address = addressCache.get(id);
+		if(id == 0) {
+			id = me.getId();
+		}
+		return new Contact(id, name, address);
 	}
 	
 	public void put(Long id, Contact contact) {
