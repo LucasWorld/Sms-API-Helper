@@ -216,6 +216,18 @@ public class Conversation implements Serializable {
 	}
 	
 	/**
+	 * Marks all SMS messages in the conversation as read.
+	 */
+	public void markMessagesRead(Context context) {
+		Uri uri = Uri.withAppendedPath(Constants.CONVERSATION_SMS_URI, Long.toString(this.getId()));
+		Cursor cursor = context.getContentResolver().query(uri, null, Sms.Column.READ + " = 0", null, null);
+		while(cursor.moveToNext()) {
+			Sms.fromCursor(cursor).setIsRead(context, true);
+		}
+		cursor.close();
+	}
+	
+	/**
 	 * Deletes the conversation from the content resolver, returns number of rows that were deleted (should return 1 if successful).
 	 */
 	public int delete(Context context) {

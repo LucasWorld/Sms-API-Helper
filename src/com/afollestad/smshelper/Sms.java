@@ -151,7 +151,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 
 	public static Sms[] getAllUnread(Context context) {
 		Cursor cursor = context.getContentResolver().query(Constants.SMS_ALL, 
-				null, null, null, null);
+				null, Column.READ + " = 0", null, null);
 		ArrayList<Sms> unread = new ArrayList<Sms>(); 
 		while(cursor.moveToNext()) {
 			if(cursor.getInt(cursor.getColumnIndex(Sms.Column.READ)) == 0) {
