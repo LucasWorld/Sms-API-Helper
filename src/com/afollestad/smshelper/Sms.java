@@ -260,32 +260,29 @@ public class Sms implements Serializable, Comparable<Sms> {
 	}
 	
 	public int setIsRead(Context context, boolean read) {
-		Uri uri = isOutgoing() ? Constants.SMS_SENT : Constants.SMS_INBOX;
 		this.read = read ? 1 : 0;
-		return context.getContentResolver().update(uri, getContentValues(false), Column.ID + " = ?", 
-				new String[] { Long.toString(this.getId()) });
-	}
-	
-	public int setIsSeen(Context context, boolean seen) {
-		Uri uri = isOutgoing() ? Constants.SMS_SENT : Constants.SMS_INBOX;
-		this.seen = seen ? 1 : 0;
-		return context.getContentResolver().update(uri, getContentValues(false), Column.ID + " = ?", 
-				new String[] { Long.toString(this.getId()) });
+		return update(context);
 	}
 	
 	public int setIsLocked(Context context, boolean locked) {
-		Uri uri = isOutgoing() ? Constants.SMS_SENT : Constants.SMS_INBOX;
 		this.locked = locked ? 1 : 0;
+		return update(context);
+	}
+	
+	private int update(Context context) {
+		Uri uri = isOutgoing() ? Constants.SMS_SENT : Constants.SMS_INBOX;
 		return context.getContentResolver().update(uri, getContentValues(false), Column.ID + " = ?", 
 				new String[] { Long.toString(this.getId()) });
 	}
 	
-	public void setErrorCode(int errorCode) {
-		this.errorCode = errorCode; 
-	}
-	
-	public void setStatus(int status) {
+	public int setErrorAndStatus(Context context, int errorCode, int status, boolean update) {
+		this.errorCode = errorCode;
 		this.status = status;
+		if(update) {
+			return update(context);
+		} else {
+			return 0;
+		}
 	}
 	
 	/**
@@ -307,18 +304,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 	public Uri saveDraft(Context context) {
 		return context.getContentResolver().insert(Constants.SMS_DRAFTS, getContentValues(true));
 	}
-	
-	/**
-	 * Places the message in the failed-box (where SMS messages that failed to send go).
-	 */
-	public Uri saveError(Context context) {
-		return context.getContentResolver().insert(Constants.SMS_FAILED, getContentValues(false));
-	}
-	
-	public int deleteError(Context context) {
-		return context.getContentResolver().delete(Constants.SMS_FAILED, Sms.Column.ID + " = ?", new String[] { Long.toString(getId()) });
-	}
-	
+		
 	public int delete(Context context) {
 		return context.getContentResolver().delete(Constants.SMS_ALL, Sms.Column.ID + " = ?", new String[] { Long.toString(getId()) });
 	}
