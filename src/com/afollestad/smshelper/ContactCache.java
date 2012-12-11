@@ -45,6 +45,9 @@ public class ContactCache {
 	}
 	
 	public void put(Long id, Contact contact) {
+		if(contact == null) {
+			return;
+		}
 		nameCache.put(id, contact.getName());
 		addressCache.put(id, contact.getNumber());
 	}

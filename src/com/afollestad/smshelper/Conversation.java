@@ -105,7 +105,7 @@ public class Conversation implements Serializable {
 	private static Conversation[] getAll(Context context, String where) {
 		Cursor cursor = context.getContentResolver().query(Constants.ALL_CONVERSATIONS_URI, 
 				Constants.ALL_CONVERSATIONS_PROJECTION, where, null, null);
-		ArrayList<Conversation> toreturn = new ArrayList<Conversation>(); 
+		ArrayList<Conversation> toreturn = new ArrayList<Conversation>();
         while(cursor.moveToNext()) {
         	toreturn.add(Conversation.fromCursor(context, cursor));
         }
@@ -135,14 +135,18 @@ public class Conversation implements Serializable {
 	private int error;
 	private int hasAttachment;
 	private ArrayList<Sms> smsMessages;
-	private Contact recipient;
 
 	/**
 	 * This only temporarily adds an SMS to this conversations cache, it doesn't save to the actual conversation;
 	 * use {@link Sms#save(Context)} for that.
 	 */
 	public void addMessage(Sms msg) {
-		smsMessages.add(msg);
+		if(smsMessages == null || smsMessages.size() == 0) {
+			smsMessages = new ArrayList<Sms>();
+			smsMessages.add(msg);
+		} else {
+			smsMessages.add(smsMessages.size() - 1, msg);
+		}
 	}
 	
 	public long getId() {
@@ -160,10 +164,16 @@ public class Conversation implements Serializable {
 	}
 
 	public Contact getRecipient(Context context, ContactCache cache) {
-		if(recipient == null) {
-			recipient = Contact.getFromId(context, this.getRecipientIds().get(0), cache);
+		ArrayList<Sms> msges = getMessages(context); 
+		if(msges.size() == 0) {
+			return null;
 		}
-		return recipient;
+		Sms topMsg = msges.get(0);
+		if(topMsg.getAddress() == null) {
+			// This message was inserted incorrectly, it must be skipped.
+			return null;
+		}
+		return topMsg.getContact(context, cache);
 	}
 	
 	public ArrayList<Long> getRecipientIds() {
@@ -199,6 +209,13 @@ public class Conversation implements Serializable {
 	}
 	
 	public ArrayList<Sms> getMessages(Context context) {
+		return getMessages(context, true);
+	}
+	
+	public ArrayList<Sms> getMessages(Context context, boolean cached) {
+		if(!cached) {
+			smsMessages = null;
+		}
 		if(smsMessages == null) {
 			smsMessages = new ArrayList<Sms>();
 			Uri uri = Uri.withAppendedPath(Constants.CONVERSATION_SMS_URI, Long.toString(this.getId()));

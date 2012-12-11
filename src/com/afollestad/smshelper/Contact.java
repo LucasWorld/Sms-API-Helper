@@ -23,7 +23,8 @@ public class Contact {
 		Uri uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(number));
 		Cursor cursor = context.getContentResolver().query(uri, new String[] { PhoneLookup.DISPLAY_NAME, PhoneLookup._ID }, null, null, null);
 		if(!cursor.moveToFirst()) {
-			return null;
+			//This number is not in any contacts on the local device
+			return new Contact(0l, number, number);
 		}
 		Long id = cursor.getLong(cursor.getColumnIndex(PhoneLookup._ID));
 		Contact toreturn = new Contact(

@@ -1,8 +1,8 @@
 package com.afollestad.smshelper;
 
-import android.net.Uri;
-
 import com.afollestad.smshelper.Conversation.Column;
+
+import android.net.Uri;
 
 public class Constants {
 	
