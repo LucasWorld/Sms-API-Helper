@@ -88,14 +88,15 @@ public class Contact {
 	}
 	
 	public Uri getProfilePic(Context context) {
-		Cursor cursor = context.getContentResolver().query(getContactUri(context), new String[] { 
-			ContactsContract.Contacts.PHOTO_URI }, null, null, null);
-		cursor.moveToFirst();
-		if(cursor.getType(0) == Cursor.FIELD_TYPE_NULL) {
-			return null;
-		}
-		Uri toreturn = Uri.parse(cursor.getString(0));
-		cursor.close();
-		return toreturn;
+//		Cursor cursor = context.getContentResolver().query(getContactUri(context), new String[] { 
+//			ContactsContract.Contacts.PHOTO_URI }, null, null, null);
+//		cursor.moveToFirst();
+//		if(cursor.getType(0) == Cursor.FIELD_TYPE_NULL) {
+//			return null;
+//		}
+//		Uri toreturn = Uri.parse(cursor.getString(0));
+//		cursor.close();
+//		return toreturn;
+		return getContactUri(context);
 	}
 }
