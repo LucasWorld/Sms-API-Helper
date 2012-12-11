@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Comparator;
 
@@ -123,7 +124,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 	}
 	
 	public ContentValues getContentValues(boolean draft) {
-		ContentValues val = new ContentValues(15);
+		ContentValues val = new ContentValues();
 		if(this.getId() > 0) {
 			val.put(Column.ID, this.getId());
 		}
@@ -148,6 +149,19 @@ public class Sms implements Serializable, Comparable<Sms> {
 		return val;
 	}
 
+	public static Sms[] getAllUnread(Context context) {
+		Cursor cursor = context.getContentResolver().query(Constants.SMS_ALL, 
+				null, null, null, null);
+		ArrayList<Sms> unread = new ArrayList<Sms>(); 
+		while(cursor.moveToNext()) {
+			if(cursor.getInt(cursor.getColumnIndex(Sms.Column.READ)) == 0) {
+				unread.add(Sms.fromCursor(cursor));
+			}
+		}
+		cursor.close();
+		return unread.toArray(new Sms[0]);
+	}
+	
 	public long getId() {
 		return id;
 	}

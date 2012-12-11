@@ -8,6 +8,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Calendar;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
@@ -81,25 +82,50 @@ public class Conversation implements Serializable {
 		toreturn.hasAttachment = cursor.getInt(cursor.getColumnIndex(Column.HAS_ATTACHMENT));
 		return toreturn;
 	}
+	
+	public ContentValues getContentValues() {
+		ContentValues val = new ContentValues();
+		val.put(Column._ID, this.getId());
+		val.put(Column.DATE, this.getDate().getTimeInMillis());
+		val.put(Column.MESSAGE_COUNT, this.getMessageCount());
+		String recipientIds = "";
+		for(Long id : this.getRecipientIds()) {
+			recipientIds += (id + " ");
+		}
+		val.put(Column.RECIPIENT_IDS, recipientIds);
+		val.put(Column.SNIPPET, this.getSnippet());
+		val.put(Column.SNIPPET_CHARSET, this.getSnippetCharset());
+		val.put(Column.READ, this.isRead() ? 1 : 0);
+		val.put(Column.TYPE, this.getType());
+		val.put(Column.ERROR, this.isError() ? 1 : 0);
+		val.put(Column.HAS_ATTACHMENT, this.hasAttachment() ? 1 : 0);
+		return val;
+	}
 
-	public static Conversation[] getAll(Context context) {
+	private static Conversation[] getAll(Context context, String where) {
 		Cursor cursor = context.getContentResolver().query(Constants.ALL_CONVERSATIONS_URI, 
-				Constants.ALL_CONVERSATIONS_PROJECTION, null, null, null);
+				Constants.ALL_CONVERSATIONS_PROJECTION, where, null, null);
 		ArrayList<Conversation> toreturn = new ArrayList<Conversation>(); 
         while(cursor.moveToNext()) {
         	toreturn.add(Conversation.fromCursor(context, cursor));
+        }
+        System.out.println("Results for getAll(context, " + where + "):");
+        for(Conversation c : toreturn) {
+        	System.out.println("\t-- " + c.getRecipientIds().get(0) + ": " + c.getSnippet());
         }
 		return toreturn.toArray(new Conversation[0]);
 	}
 	
-	public static Conversation[] getAllUnread(Context context) {
-		Cursor cursor = context.getContentResolver().query(Constants.ALL_CONVERSATIONS_URI, 
-				Constants.ALL_CONVERSATIONS_PROJECTION, "read = 0", null, null);
-		ArrayList<Conversation> toreturn = new ArrayList<Conversation>(); 
-        while(cursor.moveToNext()) {
-        	toreturn.add(Conversation.fromCursor(context, cursor));
-        }
-		return toreturn.toArray(new Conversation[0]);
+	public static Conversation get(Context context, long threadId) {
+		Conversation[] convos = getAll(context, Column._ID + " = " + threadId);
+		if(convos == null || convos.length == 0) {
+			return null;
+		}
+		return convos[0];
+	}
+	
+	public static Conversation[] getAll(Context context) {
+		return getAll(context, null);
 	}
 	
 	private long id;
@@ -113,6 +139,7 @@ public class Conversation implements Serializable {
 	private int error;
 	private int hasAttachment;
 	private ArrayList<Sms> smsMessages;
+	private Contact recipient;
 
 	/**
 	 * This only temporarily adds an SMS to this conversations cache, it doesn't save to the actual conversation;
@@ -137,7 +164,10 @@ public class Conversation implements Serializable {
 	}
 
 	public Contact getRecipient(Context context, ContactCache cache) {
-		return Contact.getFromId(context, this.getRecipientIds().get(0), cache);
+		if(recipient == null) {
+			recipient = Contact.getFromId(context, this.getRecipientIds().get(0), cache);
+		}
+		return recipient;
 	}
 	
 	public ArrayList<Long> getRecipientIds() {
