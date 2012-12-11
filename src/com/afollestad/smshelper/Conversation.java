@@ -109,10 +109,6 @@ public class Conversation implements Serializable {
         while(cursor.moveToNext()) {
         	toreturn.add(Conversation.fromCursor(context, cursor));
         }
-        System.out.println("Results for getAll(context, " + where + "):");
-        for(Conversation c : toreturn) {
-        	System.out.println("\t-- " + c.getRecipientIds().get(0) + ": " + c.getSnippet());
-        }
 		return toreturn.toArray(new Conversation[0]);
 	}
 	
