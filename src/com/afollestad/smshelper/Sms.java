@@ -246,6 +246,10 @@ public class Sms implements Serializable, Comparable<Sms> {
 		return (seen == 1);
 	}
 	
+	public boolean isError() {
+		return (errorCode > 0);
+	}
+	
 	public int setIsRead(Context context, boolean read) {
 		Uri uri = isOutgoing() ? Constants.SMS_SENT : Constants.SMS_INBOX;
 		this.read = read ? 1 : 0;
@@ -267,7 +271,25 @@ public class Sms implements Serializable, Comparable<Sms> {
 				new String[] { Long.toString(this.getId()) });
 	}
 	
-	public Sms save(Context context) {
+	/**
+	 * Gets whether or not the message is currently sending, based on whether or not it's currently in the outbox.
+	 */
+	public boolean isSending(Context context) {
+		Cursor cursor = context.getContentResolver().query(Constants.SMS_OUTBOX, 
+				null, Column.ID + " = " + getId(), null, null); 
+		boolean found = cursor.moveToFirst();
+		cursor.close();
+		return found;
+	}
+	
+	public void setErrorCode(int errorCode) {
+		this.errorCode = errorCode; 
+	}
+	
+	/**
+	 * Places in the message in the inbox/sentbox (based on whether it's outgoing or not).
+	 */
+	public Sms saveInbox(Context context) {
 		Uri uri = isOutgoing() ? Constants.SMS_SENT : Constants.SMS_INBOX;
 		Uri row = context.getContentResolver().insert(uri, getContentValues(false));
 		Cursor cursor = context.getContentResolver().query(row, null, null, null, null);
@@ -283,7 +305,26 @@ public class Sms implements Serializable, Comparable<Sms> {
 	public Uri saveDraft(Context context) {
 		return context.getContentResolver().insert(Constants.SMS_DRAFTS, getContentValues(true));
 	}
+
+	/**
+	 * Places the message in the outbox (where pending SMS messages are saved).
+	 */
+	public Uri saveOutbox(Context context) {
+		return context.getContentResolver().insert(Constants.SMS_OUTBOX, getContentValues(false));
+	}
 	
+	/**
+	 * Removes the message from the outbox (where pending SMS messages are saved).
+	 * @param context
+	 * @return
+	 */
+	public int deleteOutbox(Context context) {
+		return context.getContentResolver().delete(Constants.SMS_OUTBOX, Sms.Column.ID + " = ?", new String[] { Long.toString(getId()) });
+	}
+	
+	/**
+	 * Places the message in the failed-box (where SMS messages that failed to send go).
+	 */
 	public Uri saveError(Context context) {
 		return context.getContentResolver().insert(Constants.SMS_FAILED, getContentValues(false));
 	}

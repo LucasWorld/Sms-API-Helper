@@ -210,6 +210,17 @@ public class Conversation implements Serializable {
 		}
 		return smsMessages;
 	}
+
+	public ArrayList<Sms> getErrorMessages(Context context) {
+		Cursor cursor = context.getContentResolver().query(Constants.SMS_FAILED, null, 
+				Sms.Column.ERROR_CODE + " > 0 AND " + Sms.Column.THREAD_ID + " = " + getId(), null, null);
+		ArrayList<Sms> errors = new ArrayList<Sms>(); 
+		while(cursor.moveToNext()) {
+			errors.add(Sms.fromCursor(cursor));
+		}
+		cursor.close();
+		return errors;
+	}
 	
 	/**
 	 * Marks all SMS messages in the conversation as read.
