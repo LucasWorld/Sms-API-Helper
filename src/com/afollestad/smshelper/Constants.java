@@ -29,7 +29,5 @@ public class Constants {
 
 	public static final Uri SMS_FAILED = Uri.parse("content://sms/failed");
 	
-	public static final Uri SMS_OUTBOX = Uri.parse("content://sms/outbox");
-	
 	public static Uri ALL_CANONICAL = Uri.parse("content://mms-sms/canonical-addresses");
 }

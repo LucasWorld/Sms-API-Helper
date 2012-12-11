@@ -44,6 +44,11 @@ public class Sms implements Serializable, Comparable<Sms> {
 	public final static int TYPE_SENT = 2;
 	public final static int TYPE_RECEIVED = 1;
 	
+	public static final int STATUS_NONE = -1;	
+	public static final int STATUS_COMPLETE = 0;	
+	public static final int STATUS_PENDING = 64;	
+	public static final int STATUS_FAILED = 128;
+	
 	public static class Column {
 		public final static String ID = "_id";
 		public final static String THREAD_ID = "thread_id";
@@ -124,7 +129,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 	}
 	
 	public ContentValues getContentValues(boolean draft) {
-		ContentValues val = new ContentValues();
+		ContentValues val = new ContentValues(17);
 		if(this.getId() > 0) {
 			val.put(Column.ID, this.getId());
 		}
@@ -247,7 +252,11 @@ public class Sms implements Serializable, Comparable<Sms> {
 	}
 	
 	public boolean isError() {
-		return (errorCode > 0);
+		return (status == STATUS_FAILED);
+	}
+	
+	public boolean isSending(Context context) {
+		return (status == Sms.STATUS_PENDING);
 	}
 	
 	public int setIsRead(Context context, boolean read) {
@@ -271,19 +280,12 @@ public class Sms implements Serializable, Comparable<Sms> {
 				new String[] { Long.toString(this.getId()) });
 	}
 	
-	/**
-	 * Gets whether or not the message is currently sending, based on whether or not it's currently in the outbox.
-	 */
-	public boolean isSending(Context context) {
-		Cursor cursor = context.getContentResolver().query(Constants.SMS_OUTBOX, 
-				null, Column.ID + " = " + getId(), null, null); 
-		boolean found = cursor.moveToFirst();
-		cursor.close();
-		return found;
-	}
-	
 	public void setErrorCode(int errorCode) {
 		this.errorCode = errorCode; 
+	}
+	
+	public void setStatus(int status) {
+		this.status = status;
 	}
 	
 	/**
@@ -304,22 +306,6 @@ public class Sms implements Serializable, Comparable<Sms> {
 	 */
 	public Uri saveDraft(Context context) {
 		return context.getContentResolver().insert(Constants.SMS_DRAFTS, getContentValues(true));
-	}
-
-	/**
-	 * Places the message in the outbox (where pending SMS messages are saved).
-	 */
-	public Uri saveOutbox(Context context) {
-		return context.getContentResolver().insert(Constants.SMS_OUTBOX, getContentValues(false));
-	}
-	
-	/**
-	 * Removes the message from the outbox (where pending SMS messages are saved).
-	 * @param context
-	 * @return
-	 */
-	public int deleteOutbox(Context context) {
-		return context.getContentResolver().delete(Constants.SMS_OUTBOX, Sms.Column.ID + " = ?", new String[] { Long.toString(getId()) });
 	}
 	
 	/**

@@ -84,7 +84,7 @@ public class Conversation implements Serializable {
 	}
 	
 	public ContentValues getContentValues() {
-		ContentValues val = new ContentValues();
+		ContentValues val = new ContentValues(10);
 		val.put(Column._ID, this.getId());
 		val.put(Column.DATE, this.getDate().getTimeInMillis());
 		val.put(Column.MESSAGE_COUNT, this.getMessageCount());
@@ -202,7 +202,9 @@ public class Conversation implements Serializable {
 		if(smsMessages == null) {
 			smsMessages = new ArrayList<Sms>();
 			Uri uri = Uri.withAppendedPath(Constants.CONVERSATION_SMS_URI, Long.toString(this.getId()));
-			Cursor cursor = context.getContentResolver().query(uri, null, null, null, null);
+			String where = "(" + Sms.Column.STATUS + " = " + Sms.STATUS_COMPLETE + " OR " +
+					Sms.Column.STATUS + " = " + Sms.STATUS_NONE + ")";
+			Cursor cursor = context.getContentResolver().query(uri, null, where, null, null);
 			while(cursor.moveToNext()) {
 				smsMessages.add(Sms.fromCursor(cursor));
 			}
@@ -213,7 +215,18 @@ public class Conversation implements Serializable {
 
 	public ArrayList<Sms> getErrorMessages(Context context) {
 		Cursor cursor = context.getContentResolver().query(Constants.SMS_FAILED, null, 
-				Sms.Column.ERROR_CODE + " > 0 AND " + Sms.Column.THREAD_ID + " = " + getId(), null, null);
+				Sms.Column.STATUS + " = " + Sms.STATUS_FAILED + " AND " + Sms.Column.THREAD_ID + " = " + getId(), null, null);
+		ArrayList<Sms> errors = new ArrayList<Sms>(); 
+		while(cursor.moveToNext()) {
+			errors.add(Sms.fromCursor(cursor));
+		}
+		cursor.close();
+		return errors;
+	}
+	
+	public ArrayList<Sms> getPendingMessages(Context context) {
+		Cursor cursor = context.getContentResolver().query(Constants.SMS_FAILED, null, 
+				Sms.Column.STATUS + " = " + Sms.STATUS_PENDING + " AND " + Sms.Column.THREAD_ID + " = " + getId(), null, null);
 		ArrayList<Sms> errors = new ArrayList<Sms>(); 
 		while(cursor.moveToNext()) {
 			errors.add(Sms.fromCursor(cursor));
