@@ -9,9 +9,7 @@ public class ContactCache {
 	public ContactCache(Context context) {
 		nameCache = new Hashtable<Long, String>();
 		addressCache = new Hashtable<Long, String>();
-		me = Contact.getMe(context);
-		nameCache.put(0l, me.getName());
-		addressCache.put(0l, me.getNumber());
+		me = Contact.getMe(context, this);
 	}
 	
 	private Contact me;

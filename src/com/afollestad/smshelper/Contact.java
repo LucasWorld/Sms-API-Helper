@@ -59,9 +59,9 @@ public class Contact {
 		return toreturn;
 	}
 
-	public static Contact getMe(Context context) {
+	public static Contact getMe(Context context, ContactCache cache) {
 		TelephonyManager tele = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
-		return Contact.getFromNumber(context, tele.getLine1Number(), null);
+		return Contact.getFromNumber(context, tele.getLine1Number(), cache);
 	}
 
 	private long id;
@@ -83,25 +83,12 @@ public class Contact {
 		return number;
 	}
 	
-	public Uri getContactUri(Context context) {
+	public Uri getContactUri(Context context, ContactCache cache) {
 		long lookupId = getId();
 		if(lookupId == 0) {
-			lookupId = Contact.getMe(context).getId();
+			lookupId = Contact.getMe(context, cache).getId();
 		}
 		
 		return ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, lookupId);
-	}
-	
-	public Uri getProfilePic(Context context) {
-//		Cursor cursor = context.getContentResolver().query(getContactUri(context), new String[] { 
-//			ContactsContract.Contacts.PHOTO_URI }, null, null, null);
-//		cursor.moveToFirst();
-//		if(cursor.getType(0) == Cursor.FIELD_TYPE_NULL) {
-//			return null;
-//		}
-//		Uri toreturn = Uri.parse(cursor.getString(0));
-//		cursor.close();
-//		return toreturn;
-		return getContactUri(context);
 	}
 }
