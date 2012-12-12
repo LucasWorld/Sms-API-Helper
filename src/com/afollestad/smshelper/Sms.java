@@ -48,6 +48,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 	public static final int STATUS_COMPLETE = 0;	
 	public static final int STATUS_PENDING = 64;	
 	public static final int STATUS_FAILED = 128;
+	public static final int ERROR_NONE = 0;
 	
 	public static class Column {
 		public final static String ID = "_id";
@@ -255,7 +256,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 		return (status == STATUS_FAILED);
 	}
 	
-	public boolean isSending(Context context) {
+	public boolean isPending() {
 		return (status == Sms.STATUS_PENDING);
 	}
 	

@@ -45,9 +45,13 @@ public class Contact {
 		Cursor cursor = context.getContentResolver().query(
 				Constants.ALL_CANONICAL, null, "_id=" + id, null, null);
 		if(!cursor.moveToFirst()) {
-			return null;
+			return new Contact(id, "Unknown Name", "Unknown Number");
 		}
 		Contact toreturn = getFromNumber(context, cursor.getString(1), cache);
+		if(toreturn.getId() == 0) {
+			// Don't allow it to be cached if the ID is 0
+			return toreturn;
+		}
 		cursor.close();
 		if(cache != null) {
 			cache.put(id, toreturn);		
