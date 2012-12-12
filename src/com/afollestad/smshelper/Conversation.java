@@ -166,12 +166,11 @@ public class Conversation implements Serializable {
 	public Contact getRecipient(Context context, ContactCache cache) {
 		ArrayList<Sms> msges = getMessages(context); 
 		if(msges.size() == 0) {
-			return null;
+			return new Contact(0l, "Unknown Name", "Unknown Address");
 		}
 		Sms topMsg = msges.get(0);
 		if(topMsg.getAddress() == null) {
-			// This message was inserted incorrectly, it must be skipped.
-			return null;
+			return new Contact(0l, "Invalid Address", "Invalid Address");
 		}
 		return topMsg.getContact(context, cache);
 	}
@@ -216,7 +215,7 @@ public class Conversation implements Serializable {
 		if(!cached) {
 			smsMessages = null;
 		}
-		if(smsMessages == null) {
+		if(smsMessages == null || smsMessages.size() == 0) {
 			smsMessages = new ArrayList<Sms>();
 			Uri uri = Uri.withAppendedPath(Constants.CONVERSATION_SMS_URI, Long.toString(this.getId()));
 			Cursor cursor = context.getContentResolver().query(uri, null, null, null, null);
