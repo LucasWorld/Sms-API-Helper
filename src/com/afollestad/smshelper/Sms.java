@@ -52,7 +52,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 	public static final int ERROR_NONE = 0;
 	
 	public static class Column {
-		public final static String ID = "_id";
+		public final static String _ID = "_id";
 		public final static String THREAD_ID = "thread_id";
 		public final static String ADDRESS = "address";
 		public final static String PERSON = "person";
@@ -91,7 +91,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 	
 	public static Sms fromCursor(Cursor cursor) {
 		Sms toreturn = new Sms();
-		toreturn.id = cursor.getLong(cursor.getColumnIndex(Column.ID));
+		toreturn.id = cursor.getLong(cursor.getColumnIndex(Column._ID));
 		toreturn.threadId = cursor.getLong(cursor.getColumnIndex(Column.THREAD_ID)); 
 		toreturn.address = cursor.getString(cursor.getColumnIndex(Column.ADDRESS));
 		toreturn.person = cursor.getLong(cursor.getColumnIndex(Column.PERSON));
@@ -126,27 +126,19 @@ public class Sms implements Serializable, Comparable<Sms> {
 		return toreturn;
 	}
 	
-	public ContentValues getContentValues(boolean draft) {
-		ContentValues val = new ContentValues(17);
-		if(this.getId() > 0) {
-			val.put(Column.ID, this.getId());
-		}
+	public ContentValues getContentValues() {
+		ContentValues val = new ContentValues(13);
 		val.put(Column.THREAD_ID, this.getThreadId());
 		val.put(Column.ADDRESS, this.getAddress());
 		val.put(Column.PERSON, this.getPerson());
 		val.put(Column.DATE, this.getDate().getTimeInMillis());
-		if(!draft) {
-			val.put(Column.DATE_SENT, this.getDateSent().getTimeInMillis());
-		}
+		val.put(Column.DATE_SENT, this.getDateSent().getTimeInMillis());
 		val.put(Column.READ, this.isRead() ? 1 : 0);
-		val.put(Column.TYPE, draft ? 3 : this.getType());
+		val.put(Column.TYPE, this.getType());
 		val.put(Column.BODY, this.getBody());
 		val.put(Column.LOCKED, this.isLocked() ? 1 : 0);
 		val.put(Column.SEEN, this.isSeen() ? 1 : 0);
-		val.put(Column.SERVICE_CENTER, this.getServiceCenter());
-		val.put(Column.PROTOCOL, this.getProtocol());
 		val.put(Column.STATUS, this.getStatus());
-		val.put(Column.REPLY_PATH_PRESENT, this.isReplyPathPresent() ? 1 : 0);
 		val.put(Column.SUBJECT, this.getSubject());
 		val.put(Column.ERROR_CODE, this.getErrorCode());
 		return val;
@@ -276,9 +268,16 @@ public class Sms implements Serializable, Comparable<Sms> {
 	}
 	
 	private int update(Context context) {
-		Uri uri = isOutgoing() ? Constants.SMS_SENT : Constants.SMS_INBOX;
-		return context.getContentResolver().update(uri, getContentValues(false), Column.ID + " = ?", 
-				new String[] { Long.toString(this.getId()) });
+		Uri uri = Uri.parse("content://sms/" + getId());
+		int toreturn = context.getContentResolver().update(uri, 
+				getContentValues(), null, null);
+		System.out.println("Updated " + toreturn + " rows");
+		return toreturn;
+	}
+	
+	public int delete(Context context) {
+		Uri uri = Uri.parse("content://sms/" + getId());
+		return context.getContentResolver().delete(uri, null, null);
 	}
 	
 	public int setErrorAndStatus(Context context, int errorCode, int status, boolean update) {
@@ -296,7 +295,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 	 */
 	public Sms saveInbox(Context context) {
 		Uri uri = isOutgoing() ? Constants.SMS_SENT : Constants.SMS_INBOX;
-		Uri row = context.getContentResolver().insert(uri, getContentValues(false));
+		Uri row = context.getContentResolver().insert(uri, getContentValues());
 		Cursor cursor = context.getContentResolver().query(row, null, null, null, null);
 		cursor.moveToFirst();
 		Sms toreturn = Sms.fromCursor(cursor);
@@ -308,13 +307,9 @@ public class Sms implements Serializable, Comparable<Sms> {
 	 * This doesn't work yet.
 	 */
 	public Uri saveDraft(Context context) {
-		return context.getContentResolver().insert(Constants.SMS_DRAFTS, getContentValues(true));
+		return context.getContentResolver().insert(Constants.SMS_DRAFTS, getContentValues());
 	}
-		
-	public int delete(Context context) {
-		return context.getContentResolver().delete(Constants.SMS_ALL, Sms.Column.ID + " = ?", new String[] { Long.toString(getId()) });
-	}
-	
+			
 	public static Sms deserializeObject(String input) {
 		try {
 			byte[] data = Base64.decode(input, Base64.DEFAULT);
