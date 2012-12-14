@@ -22,7 +22,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 
 	private Sms() {		
 	}
-	
+
 	private long id;
 	private long threadId;
 	private String address;
@@ -41,16 +41,16 @@ public class Sms implements Serializable, Comparable<Sms> {
 	private int errorCode;
 	private int seen;
 	private boolean isemail;
-	
+
 	public final static int TYPE_SENT = 2;
 	public final static int TYPE_RECEIVED = 1;
-	
+
 	public static final int STATUS_NONE = -1;	
 	public static final int STATUS_COMPLETE = 0;	
 	public static final int STATUS_PENDING = 64;	
 	public static final int STATUS_FAILED = 128;
 	public static final int ERROR_NONE = 0;
-	
+
 	public static class Column {
 		public final static String _ID = "_id";
 		public final static String THREAD_ID = "thread_id";
@@ -70,7 +70,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 		public final static String ERROR_CODE = "error_code";
 		public final static String SEEN = "seen";
 	}
-	
+
 	public static Sms newSms(Context context, Long person, Long threadId, String body, boolean outgoing, ContactCache cache, boolean isemail) {
 		Calendar now = Calendar.getInstance();
 		Contact contact = Contact.getFromId(context, person, cache);
@@ -88,7 +88,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 		msg.isemail = isemail;
 		return msg;
 	}
-	
+
 	public static Sms fromCursor(Cursor cursor) {
 		Sms toreturn = new Sms();
 		toreturn.id = cursor.getLong(cursor.getColumnIndex(Column._ID));
@@ -110,7 +110,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 		toreturn.seen = cursor.getInt(cursor.getColumnIndex(Column.SEEN));
 		return toreturn;
 	}
-		
+
 	public static Sms fromStockSms(Context context, SmsMessage sms, boolean outgoing) {
 		Sms toreturn = new Sms();
 		toreturn.body = sms.getDisplayMessageBody();
@@ -125,7 +125,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 		toreturn.type = outgoing ? TYPE_SENT : TYPE_RECEIVED;
 		return toreturn;
 	}
-	
+
 	public ContentValues getContentValues() {
 		ContentValues val = new ContentValues(13);
 		val.put(Column.THREAD_ID, this.getThreadId());
@@ -156,23 +156,23 @@ public class Sms implements Serializable, Comparable<Sms> {
 		cursor.close();
 		return unread.toArray(new Sms[0]);
 	}
-	
+
 	public long getId() {
 		return id;
 	}
-	
+
 	public long getThreadId() {
 		return threadId;
 	}
-	
+
 	public String getAddress() {
 		return address;
 	}
-	
+
 	public long getPerson() {
 		return person;
 	}
-	
+
 	public Contact getContact(Context context, ContactCache cache) {
 		if(this.isEmail()) {
 			return Contact.getFromEmail(context, this.getAddress(), cache);
@@ -180,13 +180,13 @@ public class Sms implements Serializable, Comparable<Sms> {
 			return Contact.getFromNumber(context, this.getAddress(), cache);
 		}
 	}
-	
+
 	public Calendar getDate() {
 		Calendar cal = Calendar.getInstance();
 		cal.setTimeInMillis(date);
 		return cal;
 	}
-	
+
 	public Calendar getDateSent() {
 		Calendar cal = Calendar.getInstance();
 		cal.setTimeInMillis(dateSent);
@@ -196,19 +196,19 @@ public class Sms implements Serializable, Comparable<Sms> {
 	public int getProtocol() {
 		return protocol;
 	}
-	
+
 	public boolean isRead() {
 		return (read == 1);
 	}
-	
+
 	public int getStatus() {
 		return status;
 	}
-	
+
 	public int getType() { 
 		return type;
 	}
-	
+
 	/**
 	 * Gets whether it was sent by you or received by you based on the
 	 * value of {@link #getType()} (2 means sent, 1 means received).
@@ -216,11 +216,11 @@ public class Sms implements Serializable, Comparable<Sms> {
 	public boolean isOutgoing() {
 		return (getType() == 2);
 	}
-	
+
 	public boolean isReplyPathPresent() { 
 		return (replyPathPresent == 1);
 	}
-	
+
 	public String getSubject() {
 		return subject;
 	}
@@ -232,23 +232,23 @@ public class Sms implements Serializable, Comparable<Sms> {
 	public String getServiceCenter() {
 		return serviceCenter;
 	}
-	
+
 	public boolean isLocked() {
 		return (locked == 1);
 	}
-	
+
 	public int getErrorCode() { 
 		return errorCode;
 	}
-	
+
 	public boolean isSeen() { 
 		return (seen == 1);
 	}
-	
+
 	public boolean isError() {
 		return (status == STATUS_FAILED);
 	}
-	
+
 	public boolean isPending() {
 		return (status == Sms.STATUS_PENDING);
 	}
@@ -256,22 +256,19 @@ public class Sms implements Serializable, Comparable<Sms> {
 	public boolean isEmail() {
 		return isemail;
 	}
-	
+
 	public int setIsRead(Context context, boolean read) {
 		this.read = read ? 1 : 0;
 		ContentValues values = new ContentValues(1);
 		values.put(Column.READ, this.read);
 		return update(context, values);
 	}
-	
+
 	public int update(Context context, ContentValues values) {
-		Uri uri = isOutgoing() ? Constants.SMS_SENT : Constants.SMS_INBOX;
-		int toreturn = context.getContentResolver().update(uri, 
+		return context.getContentResolver().update(Constants.SMS_ALL, 
 				getContentValues(), Column._ID + "=?", new String[] { Long.toString(getId()) });
-		System.out.println("Updated " + toreturn + " rows");
-		return toreturn;
 	}
-	
+
 	public int setErrorAndStatus(Context context, int errorCode, int status, boolean update) {
 		ContentValues values = new ContentValues();
 		if(this.errorCode != errorCode) {
@@ -288,7 +285,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 			return -1;
 		}
 	}
-	
+
 	/**
 	 * Places in the message in the inbox/sentbox (based on whether it's outgoing or not).
 	 */
@@ -301,14 +298,14 @@ public class Sms implements Serializable, Comparable<Sms> {
 		cursor.close();
 		return toreturn;
 	}
-	
+
 	/**
 	 * This doesn't work yet.
 	 */
 	public Uri saveDraft(Context context) {
 		return context.getContentResolver().insert(Constants.SMS_DRAFTS, getContentValues());
 	}
-			
+
 	public static Sms deserializeObject(String input) {
 		try {
 			byte[] data = Base64.decode(input, Base64.DEFAULT);
@@ -335,7 +332,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 			return "";
 		}
 	}
-	
+
 	public static class SmsComparator implements Comparator<Sms> {
 
 		@Override
@@ -343,7 +340,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 			return left.compareTo(right);
 		}
 	}
-	
+
 	public static class SmsReverseComparator implements Comparator<Sms> {
 
 		@Override
