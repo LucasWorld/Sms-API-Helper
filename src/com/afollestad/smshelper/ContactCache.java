@@ -8,10 +8,8 @@ public class ContactCache {
 
 	public ContactCache(Context context) {
 		cache = new Hashtable<Long, Contact>();
-		me = Contact.getMe(context, this);
 	}
 	
-	private Contact me;
 	private Hashtable<Long, Contact> cache;
 	
 	public Contact getFromNumber(String number) {
@@ -37,9 +35,6 @@ public class ContactCache {
 	public Contact getFromId(Long id) {
 		if(!containsId(id)) {
 			return null;
-		}
-		if(id == 0) {
-			id = me.getId();
 		}
 		Contact toreturn = cache.get(id);
 		System.out.println("Got contact from cache: " + toreturn.getId() + " (" + toreturn.getName() + ")");

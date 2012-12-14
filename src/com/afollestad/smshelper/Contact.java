@@ -24,10 +24,10 @@ public class Contact {
 		this.isemail = isemail;
 	}
 
-	public static Contact fromProfileCursor(Cursor cursor) {
+	private static Contact fromProfileCursor(Cursor cursor) {
 		String type = cursor.getString(cursor.getColumnIndex(ContactsContract.SyncState.ACCOUNT_TYPE));
 		return new Contact(
-				cursor.getLong(cursor.getColumnIndex(ContactsContract.Profile._ID)),
+				cursor.getLong(cursor.getColumnIndex("contact_id")),
 				cursor.getString(cursor.getColumnIndex(ContactsContract.Profile.DISPLAY_NAME)),
 				cursor.getString(cursor.getColumnIndex(ContactsContract.SyncState.ACCOUNT_NAME)),
 				true)
@@ -102,33 +102,30 @@ public class Contact {
 		return toreturn;
 	}
 
+	public static Contact getMe(Context context, ContactCache cache) {
+		if(cache.containsId(-1l)) {
+			return cache.getFromId(-1l);
+		}
+		Contact[] profiles = getProfiles(context);
+		for(Contact acc : profiles) {
+			if(acc.isGoogleAccount()) {
+				cache.put(-1l, acc);
+				return acc;
+			}
+		}
+		return null;
+	}
+	
 	public static Contact[] getProfiles(Context context) {
 		ArrayList<Contact> toreturn = new ArrayList<Contact>();
 		Cursor c = context.getContentResolver().query(ContactsContract.Profile.CONTENT_RAW_CONTACTS_URI, null, null, null, null);
-		int accountIndex = 0;
 		while(c.moveToNext()) {
-			accountIndex++;
-			int index = 0;
-			System.out.println(" >> Getting account " + accountIndex + "...");
-			for(String name : c.getColumnNames()) {
-				String value = "null";
-				if(c.getType(index) != Cursor.FIELD_TYPE_NULL) {
-					value = c.getString(index);
-				}
-				System.out.println(" > " + name + " = " + value);
-				index++;
-			}
 			toreturn.add(Contact.fromProfileCursor(c));
 		}
 		c.close();
 		return toreturn.toArray(new Contact[0]);
 	}
 	
-	public static Contact getMe(Context context, ContactCache cache) {
-		String myEmail = getProfiles(context)[0].getAddress();
-		return Contact.getFromEmail(context, myEmail, cache);
-	}
-
 	private long id;
 	private String name;
 	private String address;
@@ -171,10 +168,6 @@ public class Contact {
 	}
 	
 	public Uri getContactUri(Context context, ContactCache cache) {
-		long lookupId = getId();
-		if(lookupId == 0) {
-			lookupId = Contact.getMe(context, cache).getId();
-		}
-		return ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, lookupId);
+		return ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, getId());
 	}
 }
