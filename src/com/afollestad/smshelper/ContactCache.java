@@ -7,54 +7,77 @@ import android.content.Context;
 public class ContactCache {
 
 	public ContactCache(Context context) {
-		nameCache = new Hashtable<Long, String>();
-		addressCache = new Hashtable<Long, String>();
+		cache = new Hashtable<Long, Contact>();
 		me = Contact.getMe(context, this);
 	}
 	
 	private Contact me;
-	private Hashtable<Long, String> nameCache;
-	private Hashtable<Long, String> addressCache;
+	private Hashtable<Long, Contact> cache;
 	
 	public Contact getFromNumber(String number) {
-		if(!addressCache.containsValue(number)) {
+		int contains = containsNumber(number);
+		if(contains == -1) {
 			return null;
 		}
-		String[] values = addressCache.values().toArray(new String[0]);
-		for(int i = 0; i < values.length; i++) {
-			if(values[i].equals(number)) {
-				return getFromId(addressCache.keySet().toArray(new Long[0])[i]);
-			}
+		Contact toreturn = cache.values().toArray(new Contact[0])[contains];
+		System.out.println("Got contact from cache: " + toreturn.getId() + " (" + toreturn.getName() + ")");
+		return toreturn;
+	}
+	
+	public Contact getFromEmail(String address) {
+		int contains = containsEmail(address);
+		if(contains == -1) {
+			return null;
 		}
-		return null;
+		Contact toreturn = cache.values().toArray(new Contact[0])[contains];
+		System.out.println("Got contact from cache: " + toreturn.getId() + " (" + toreturn.getName() + ")");
+		return toreturn;
 	}
 	
 	public Contact getFromId(Long id) {
 		if(!containsId(id)) {
 			return null;
 		}
-		System.out.println("Got contact from cache: " + id + " (" + addressCache.get(id).toString() + ")");
-		String name = nameCache.get(id);
-		String address = addressCache.get(id);
 		if(id == 0) {
 			id = me.getId();
 		}
-		return new Contact(id, name, address);
+		Contact toreturn = cache.get(id);
+		System.out.println("Got contact from cache: " + toreturn.getId() + " (" + toreturn.getName() + ")");
+		return toreturn;
 	}
 	
 	public void put(Long id, Contact contact) {
 		if(contact == null) {
 			return;
 		}
-		nameCache.put(id, contact.getName());
-		addressCache.put(id, contact.getNumber());
+		cache.put(id, contact);
 	}
 	
 	public boolean containsId(Long id) {
-		return (nameCache.containsKey(id) && addressCache.containsKey(id));
+		return cache.containsKey(id);
 	}
 	
-	public boolean containsNumber(String number) {
-		return addressCache.containsValue(number);
+	public int containsNumber(String number) {
+		int index = -1;
+		for(Long key : cache.keySet()) {
+			index++;
+			Contact value = cache.get(key);
+			if(!value.isEmail() && value.getAddress().equals(number)) {
+				return index;
+			}
+		}
+		return -1;
+	}
+
+	public int containsEmail(String address) {
+		int index = -1;
+		for(Long key : cache.keySet()) {
+			index++;
+			Contact value = cache.get(key);
+			if(value.isEmail() && value.getAddress().equals(address)) {
+				return index;
+			}
+		}
+		return -1;
 	}
 }

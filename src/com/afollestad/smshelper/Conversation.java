@@ -163,14 +163,26 @@ public class Conversation implements Serializable {
 		return messageCount;
 	}
 
-	public Contact getRecipient(Context context, ContactCache cache) {
+	public boolean isEmail(Context context) {
 		ArrayList<Sms> msges = getMessages(context); 
 		if(msges.size() == 0) {
-			return new Contact(0l, "Unknown Name", "Unknown Address");
+			return false;
 		}
 		Sms topMsg = msges.get(0);
 		if(topMsg.getAddress() == null) {
-			return new Contact(0l, "Invalid Address", "Invalid Address");
+			return false;
+		}
+		return topMsg.isEmail();
+	}
+	
+	public Contact getRecipient(Context context, ContactCache cache) {
+		ArrayList<Sms> msges = getMessages(context); 
+		if(msges.size() == 0) {
+			return new Contact(0l, "Unknown Name", "Unknown Address", false);
+		}
+		Sms topMsg = msges.get(0);
+		if(topMsg.getAddress() == null) {
+			return new Contact(0l, "Invalid Address", "Invalid Address", false);
 		}
 		return topMsg.getContact(context, cache);
 	}

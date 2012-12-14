@@ -40,6 +40,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 	private int locked;
 	private int errorCode;
 	private int seen;
+	private boolean isemail;
 	
 	public final static int TYPE_SENT = 2;
 	public final static int TYPE_RECEIVED = 1;
@@ -70,7 +71,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 		public final static String SEEN = "seen";
 	}
 	
-	public static Sms newSms(Context context, Long person, Long threadId, String body, boolean outgoing, ContactCache cache) {
+	public static Sms newSms(Context context, Long person, Long threadId, String body, boolean outgoing, ContactCache cache, boolean isemail) {
 		Calendar now = Calendar.getInstance();
 		Contact contact = Contact.getFromId(context, person, cache);
 		if(contact == null) {
@@ -80,10 +81,11 @@ public class Sms implements Serializable, Comparable<Sms> {
 		msg.date = now.getTimeInMillis();
 		msg.dateSent = now.getTimeInMillis();
 		msg.person = person;
-		msg.address = contact.getNumber();
+		msg.address = contact.getAddress();
 		msg.threadId = threadId;
 		msg.body = body;
 		msg.type = (outgoing ? TYPE_SENT : TYPE_RECEIVED);
+		msg.isemail = isemail;
 		return msg;
 	}
 	
@@ -108,17 +110,12 @@ public class Sms implements Serializable, Comparable<Sms> {
 		toreturn.seen = cursor.getInt(cursor.getColumnIndex(Column.SEEN));
 		return toreturn;
 	}
-	
-	public static String stripAddress(String address) {
-		return address.replace("(", "").replace(")", "").replace("-", "").replace(" ", "");
-	}
-	
+		
 	public static Sms fromStockSms(Context context, SmsMessage sms, boolean outgoing) {
-		/*TelephonyManager tele = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
-		String mynumber = tele.getLine1Number();*/
 		Sms toreturn = new Sms();
 		toreturn.body = sms.getDisplayMessageBody();
 		toreturn.address = sms.getDisplayOriginatingAddress();
+		toreturn.isemail = sms.isEmail(); 
 		toreturn.status = sms.getStatus();
 		toreturn.date = sms.getTimestampMillis();
 		toreturn.dateSent = sms.getTimestampMillis();
@@ -185,7 +182,11 @@ public class Sms implements Serializable, Comparable<Sms> {
 	}
 	
 	public Contact getContact(Context context, ContactCache cache) {
-		return Contact.getFromNumber(context, this.getAddress(), cache);
+		if(this.isEmail()) {
+			return Contact.getFromEmail(context, this.getAddress(), cache);
+		} else {
+			return Contact.getFromNumber(context, this.getAddress(), cache);
+		}
 	}
 	
 	public Calendar getDate() {
@@ -258,6 +259,10 @@ public class Sms implements Serializable, Comparable<Sms> {
 	
 	public boolean isPending() {
 		return (status == Sms.STATUS_PENDING);
+	}
+
+	public boolean isEmail() {
+		return isemail;
 	}
 	
 	public int setIsRead(Context context, boolean read) {
