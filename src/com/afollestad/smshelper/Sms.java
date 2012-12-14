@@ -259,34 +259,33 @@ public class Sms implements Serializable, Comparable<Sms> {
 	
 	public int setIsRead(Context context, boolean read) {
 		this.read = read ? 1 : 0;
-		return update(context);
+		ContentValues values = new ContentValues(1);
+		values.put(Column.READ, this.read);
+		return update(context, values);
 	}
 	
-	public int setIsLocked(Context context, boolean locked) {
-		this.locked = locked ? 1 : 0;
-		return update(context);
-	}
-	
-	private int update(Context context) {
-		Uri uri = Uri.parse("content://sms/" + getId());
+	public int update(Context context, ContentValues values) {
+		Uri uri = isOutgoing() ? Constants.SMS_SENT : Constants.SMS_INBOX;
 		int toreturn = context.getContentResolver().update(uri, 
-				getContentValues(), null, null);
+				getContentValues(), Column._ID + "=?", new String[] { Long.toString(getId()) });
 		System.out.println("Updated " + toreturn + " rows");
 		return toreturn;
 	}
 	
-	public int delete(Context context) {
-		Uri uri = Uri.parse("content://sms/" + getId());
-		return context.getContentResolver().delete(uri, null, null);
-	}
-	
 	public int setErrorAndStatus(Context context, int errorCode, int status, boolean update) {
-		this.errorCode = errorCode;
-		this.status = status;
+		ContentValues values = new ContentValues();
+		if(this.errorCode != errorCode) {
+			this.errorCode = errorCode;
+			values.put(Column.ERROR_CODE, this.errorCode);
+		}
+		if(this.status != status) {
+			this.status = status;
+			values.put(Column.STATUS, this.status);
+		}
 		if(update) {
-			return update(context);
+			return update(context, values);
 		} else {
-			return 0;
+			return -1;
 		}
 	}
 	
