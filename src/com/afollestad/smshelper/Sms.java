@@ -7,7 +7,6 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Comparator;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -338,24 +337,24 @@ public class Sms implements Serializable, Comparable<Sms> {
 		}
 	}
 
-	public static class SmsComparator implements Comparator<Sms> {
-
-		@Override
-		public int compare(Sms left, Sms right) {
-			return left.compareTo(right);
-		}
-	}
-
-	public static class SmsReverseComparator implements Comparator<Sms> {
-
-		@Override
-		public int compare(Sms left, Sms right) {
-			return right.compareTo(left);
-		}
-	}
-
 	@Override
 	public int compareTo(Sms other) {
 		return getDate().compareTo(other.getDate());
+	}
+	
+	public static class SmsComparator implements java.util.Comparator<Sms> {
+
+		@Override
+		public int compare(Sms left, Sms right) {
+			return left.getDate().compareTo(right.getDate());
+		}
+	}
+
+	public static class SmsReverseComparator implements java.util.Comparator<Sms> {
+
+		@Override
+		public int compare(Sms left, Sms right) {
+			return right.getDate().compareTo(left.getDate());
+		}
 	}
 }
