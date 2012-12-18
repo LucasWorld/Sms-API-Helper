@@ -204,10 +204,6 @@ public class Sms implements Serializable, Comparable<Sms> {
 		return type;
 	}
 
-	/**
-	 * Gets whether it was sent by you or received by you based on the
-	 * value of {@link #getType()} (2 means sent, 1 means received).
-	 */
 	public boolean isOutgoing() {
 		return (getType() == Sms.TYPE_SENT);
 	}
@@ -241,7 +237,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 	}
 
 	public boolean isError() {
-		return (errorCode != 0);
+		return (errorCode < -1 || errorCode > 0) && isOutgoing();
 	}
 
 	public boolean isPending() {
@@ -264,15 +260,9 @@ public class Sms implements Serializable, Comparable<Sms> {
 				getContentValues(), Column._ID + "=?", new String[] { Long.toString(getId()) });
 	}
 	
-	public int setErrorCode(Context context, int errorCode, boolean update) {
-		ContentValues values = new ContentValues(1);
+	public void setErrorAndStatus(int errorCode, int statusCode) {
 		this.errorCode = errorCode;
-		values.put(Column.ERROR_CODE, this.errorCode);
-		if(update) {
-			return update(context, values);
-		} else {
-			return -1;
-		}
+		this.status = statusCode;
 	}
 	
 	public int setStatusCode(Context context, int statusCode, boolean update) {
@@ -336,6 +326,10 @@ public class Sms implements Serializable, Comparable<Sms> {
 	@Override
 	public int compareTo(Sms other) {
 		return getDate().compareTo(other.getDate());
+	}
+
+	public int delete(Context context) {
+		return context.getContentResolver().delete(Constants.SMS_ALL, "thread_id=" + getThreadId() + " and _id=" + getId(), null);
 	}
 	
 	public static class SmsComparator implements java.util.Comparator<Sms> {

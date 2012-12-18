@@ -27,13 +27,11 @@ public class Conversation implements Serializable {
          * The date at which the thread was created.
          */
         public static final String DATE = "date";
-
         /**
          * A string encoding of the recipient IDs of the recipients of the
          * message, in numerical order and separated by spaces.
          */
         public static final String RECIPIENT_IDS = "recipient_ids";
-
         /**
          * The message count of the thread.
          */
@@ -42,14 +40,6 @@ public class Conversation implements Serializable {
          * Indicates whether all messages of the thread have been read.
          */
         public static final String READ = "read";
-        /**
-         * The snippet of the latest message in the thread.
-         */
-        public static final String SNIPPET = "snippet";
-        /**
-         * The charset of the snippet.
-         */
-        public static final String SNIPPET_CHARSET = "snippet_cs";
         /**
          * Type of the thread, either Threads.COMMON_THREAD or
          * Threads.BROADCAST_THREAD.
@@ -74,8 +64,6 @@ public class Conversation implements Serializable {
 		toreturn.date = cursor.getLong(cursor.getColumnIndex(Column.DATE)); 
 		toreturn.messageCount = cursor.getLong(cursor.getColumnIndex(Column.MESSAGE_COUNT)); 
 		toreturn.recipientIds = cursor.getString(cursor.getColumnIndex(Column.RECIPIENT_IDS));
-		toreturn.snippet = cursor.getString(cursor.getColumnIndex(Column.SNIPPET));
-		toreturn.snippetCs = cursor.getString(cursor.getColumnIndex(Column.SNIPPET_CHARSET));
 		toreturn.read = cursor.getInt(cursor.getColumnIndex(Column.READ));
 		toreturn.type = cursor.getInt(cursor.getColumnIndex(Column.TYPE));
 		toreturn.error = cursor.getInt(cursor.getColumnIndex(Column.ERROR));
@@ -93,8 +81,6 @@ public class Conversation implements Serializable {
 			recipientIds += (id + " ");
 		}
 		val.put(Column.RECIPIENT_IDS, recipientIds);
-		val.put(Column.SNIPPET, this.getSnippet());
-		val.put(Column.SNIPPET_CHARSET, this.getSnippetCharset());
 		val.put(Column.READ, this.isRead() ? 1 : 0);
 		val.put(Column.TYPE, this.getType());
 		val.put(Column.ERROR, this.isError() ? 1 : 0);
@@ -128,8 +114,6 @@ public class Conversation implements Serializable {
 	private long date;
 	private long messageCount;
 	private String recipientIds;
-	private String snippet;
-	private String snippetCs;
 	private int read;
 	private int type;
 	private int error;
@@ -187,12 +171,12 @@ public class Conversation implements Serializable {
 		return toReturn;
 	}
 
-	public String getSnippet() {
-		return snippet;
-	}
-
-	public String getSnippetCharset() {
-		return snippetCs;
+	public String getSnippet(Context context) {
+		ArrayList<Sms> msges = getMessages(context); 
+		if(msges.size() == 0) {
+			return null;
+		}
+		return msges.get(0).getBody();
 	}
 
 	public boolean isRead() {
@@ -208,7 +192,7 @@ public class Conversation implements Serializable {
 	}
 	
 	public boolean isError() {
-		return (error != 0);
+		return (error < -1 || error > 0);
 	}
 	
 	public boolean hasAttachment() {
