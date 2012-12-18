@@ -13,9 +13,7 @@ import android.provider.ContactsContract.PhoneLookup;
 public class Contact {
 
 	public final static String TYPE_GOOGLE_ACCOUNT = "com.google";
-	
-	private final static String TYPE_NORMAL = "contact";
-	
+	private final static String TYPE_NORMAL = "contact";	
 	
 	public Contact(long id, String name, String address, boolean isemail) {
 		this.id = id;
@@ -85,8 +83,7 @@ public class Contact {
 		if(cache != null && cache.containsId(id)) {
 			return cache.getFromId(id);
 		}
-		Cursor cursor = context.getContentResolver().query(
-				Constants.ALL_CANONICAL, null, "_id=" + id, null, null);
+		Cursor cursor = context.getContentResolver().query(Constants.ALL_CANONICAL, null, "_id = " + id, null, null);
 		if(!cursor.moveToFirst()) {
 			return new Contact(id, "Unknown Name", "Unknown Number", false);
 		}

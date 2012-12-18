@@ -104,7 +104,7 @@ public class Conversation implements Serializable {
 
 	private static Conversation[] getAll(Context context, String where) {
 		Cursor cursor = context.getContentResolver().query(Constants.ALL_CONVERSATIONS_URI, 
-				Constants.ALL_CONVERSATIONS_PROJECTION, where, null, null);
+				null, where, null, null);
 		ArrayList<Conversation> toreturn = new ArrayList<Conversation>();
         while(cursor.moveToNext()) {
         	toreturn.add(Conversation.fromCursor(context, cursor));
@@ -176,15 +176,7 @@ public class Conversation implements Serializable {
 	}
 	
 	public Contact getRecipient(Context context, ContactCache cache) {
-		ArrayList<Sms> msges = getMessages(context); 
-		if(msges.size() == 0) {
-			return new Contact(0l, "Unknown Name", "Unknown Address", false);
-		}
-		Sms topMsg = msges.get(0);
-		if(topMsg.getAddress() == null) {
-			return new Contact(0l, "Invalid Address", "Invalid Address", false);
-		}
-		return topMsg.getContact(context, cache);
+		return Contact.getFromId(context, getRecipientIds().get(0), cache);
 	}
 	
 	public ArrayList<Long> getRecipientIds() {
@@ -211,8 +203,12 @@ public class Conversation implements Serializable {
 		return type;
 	}
 
+	public boolean isOutgoing() {
+		return (getType() == Sms.TYPE_SENT);
+	}
+	
 	public boolean isError() {
-		return (error == 1);
+		return (error != 0);
 	}
 	
 	public boolean hasAttachment() {
@@ -232,7 +228,7 @@ public class Conversation implements Serializable {
 			Uri uri = Uri.withAppendedPath(Constants.CONVERSATION_SMS_URI, Long.toString(this.getId()));
 			Cursor cursor = context.getContentResolver().query(uri, null, null, null, null);
 			while(cursor.moveToNext()) {
-				smsMessages.add(Sms.fromCursor(cursor));
+				smsMessages.add(new Sms(cursor));
 			}
 			cursor.close();
 		}
@@ -246,7 +242,7 @@ public class Conversation implements Serializable {
 		Uri uri = Uri.withAppendedPath(Constants.CONVERSATION_SMS_URI, Long.toString(this.getId()));
 		Cursor cursor = context.getContentResolver().query(uri, null, Sms.Column.READ + " = 0", null, null);
 		while(cursor.moveToNext()) {
-			Sms.fromCursor(cursor).setIsRead(context, true);
+			new Sms(cursor).setIsRead(context, true);
 		}
 		cursor.close();
 	}

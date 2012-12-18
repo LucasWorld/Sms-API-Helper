@@ -19,7 +19,25 @@ public class Sms implements Serializable, Comparable<Sms> {
 
 	private static final long serialVersionUID = -6711776602850418239L;
 
-	private Sms() {		
+	private Sms() { }
+	public Sms(Cursor cursor) {
+		id = cursor.getLong(cursor.getColumnIndex(Column._ID));
+		threadId = cursor.getLong(cursor.getColumnIndex(Column.THREAD_ID)); 
+		address = cursor.getString(cursor.getColumnIndex(Column.ADDRESS));
+		person = cursor.getLong(cursor.getColumnIndex(Column.PERSON));
+		date = cursor.getLong(cursor.getColumnIndex(Column.DATE));
+		dateSent = cursor.getLong(cursor.getColumnIndex(Column.DATE_SENT));
+		protocol = cursor.getInt(cursor.getColumnIndex(Column.PROTOCOL));
+		read = cursor.getInt(cursor.getColumnIndex(Column.READ));
+		status = cursor.getInt(cursor.getColumnIndex(Column.STATUS));
+		type = cursor.getInt(cursor.getColumnIndex(Column.TYPE));
+		replyPathPresent = cursor.getInt(cursor.getColumnIndex(Column.REPLY_PATH_PRESENT));
+		subject = cursor.getString(cursor.getColumnIndex(Column.SUBJECT));
+		body = cursor.getString(cursor.getColumnIndex(Column.BODY));
+		serviceCenter = cursor.getString(cursor.getColumnIndex(Column.SERVICE_CENTER)); 
+		locked = cursor.getInt(cursor.getColumnIndex(Column.LOCKED));
+		errorCode = cursor.getInt(cursor.getColumnIndex(Column.ERROR_CODE));
+		seen = cursor.getInt(cursor.getColumnIndex(Column.SEEN));
 	}
 
 	private long id;
@@ -30,14 +48,14 @@ public class Sms implements Serializable, Comparable<Sms> {
 	private long dateSent;
 	private int protocol;
 	private int read;
-	private int status = -1;
+	private int status = Sms.STATUS_NONE;
 	private int type = 1;
 	private int replyPathPresent;
 	private String serviceCenter;
 	private String subject;
 	private String body;
 	private int locked;
-	private int errorCode;
+	private int errorCode = Sms.ERROR_NONE;
 	private int seen;
 	private boolean isemail;
 
@@ -88,28 +106,6 @@ public class Sms implements Serializable, Comparable<Sms> {
 		return msg;
 	}
 
-	public static Sms fromCursor(Cursor cursor) {
-		Sms toreturn = new Sms();
-		toreturn.id = cursor.getLong(cursor.getColumnIndex(Column._ID));
-		toreturn.threadId = cursor.getLong(cursor.getColumnIndex(Column.THREAD_ID)); 
-		toreturn.address = cursor.getString(cursor.getColumnIndex(Column.ADDRESS));
-		toreturn.person = cursor.getLong(cursor.getColumnIndex(Column.PERSON));
-		toreturn.date = cursor.getLong(cursor.getColumnIndex(Column.DATE));
-		toreturn.dateSent = cursor.getLong(cursor.getColumnIndex(Column.DATE_SENT));
-		toreturn.protocol = cursor.getInt(cursor.getColumnIndex(Column.PROTOCOL));
-		toreturn.read = cursor.getInt(cursor.getColumnIndex(Column.READ));
-		toreturn.status = cursor.getInt(cursor.getColumnIndex(Column.STATUS));
-		toreturn.type = cursor.getInt(cursor.getColumnIndex(Column.TYPE));
-		toreturn.replyPathPresent = cursor.getInt(cursor.getColumnIndex(Column.REPLY_PATH_PRESENT));
-		toreturn.subject = cursor.getString(cursor.getColumnIndex(Column.SUBJECT));
-		toreturn.body = cursor.getString(cursor.getColumnIndex(Column.BODY));
-		toreturn.serviceCenter = cursor.getString(cursor.getColumnIndex(Column.SERVICE_CENTER)); 
-		toreturn.locked = cursor.getInt(cursor.getColumnIndex(Column.LOCKED));
-		toreturn.errorCode = cursor.getInt(cursor.getColumnIndex(Column.ERROR_CODE));
-		toreturn.seen = cursor.getInt(cursor.getColumnIndex(Column.SEEN));
-		return toreturn;
-	}
-
 	public static Sms fromStockSms(Context context, SmsMessage sms, boolean outgoing) {
 		Sms toreturn = new Sms();
 		toreturn.body = sms.getDisplayMessageBody();
@@ -149,7 +145,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 		ArrayList<Sms> unread = new ArrayList<Sms>(); 
 		while(cursor.moveToNext()) {
 			if(cursor.getInt(cursor.getColumnIndex(Sms.Column.READ)) == 0) {
-				unread.add(Sms.fromCursor(cursor));
+				unread.add(new Sms(cursor));
 			}
 		}
 		cursor.close();
@@ -213,7 +209,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 	 * value of {@link #getType()} (2 means sent, 1 means received).
 	 */
 	public boolean isOutgoing() {
-		return (getType() == 2);
+		return (getType() == Sms.TYPE_SENT);
 	}
 
 	public boolean isReplyPathPresent() { 
@@ -245,7 +241,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 	}
 
 	public boolean isError() {
-		return (status == STATUS_FAILED);
+		return (errorCode != 0);
 	}
 
 	public boolean isPending() {
@@ -298,7 +294,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 		Uri row = context.getContentResolver().insert(uri, getContentValues());
 		Cursor cursor = context.getContentResolver().query(row, null, null, null, null);
 		cursor.moveToFirst();
-		Sms toreturn = Sms.fromCursor(cursor);
+		Sms toreturn = new Sms(cursor);
 		cursor.close();
 		return toreturn;
 	}

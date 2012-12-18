@@ -1,16 +1,8 @@
 package com.afollestad.smshelper;
 
-import com.afollestad.smshelper.Conversation.Column;
-
 import android.net.Uri;
 
 public class Constants {
-	
-	public static final String[] ALL_CONVERSATIONS_PROJECTION = new String[] { 
-		Column._ID, Column.DATE, Column.MESSAGE_COUNT, Column.TYPE,
-        Column.RECIPIENT_IDS, Column.SNIPPET, Column.SNIPPET_CHARSET, 
-        Column.READ, Column.ERROR, Column.HAS_ATTACHMENT
-	};
 	
 	private static final Uri BASE_CONVERSATIONS_URI = Uri.withAppendedPath(Uri.parse("content://mms-sms/"), "conversations");
 
