@@ -187,8 +187,12 @@ public class Conversation implements Serializable {
 		return type;
 	}
 
-	public boolean isOutgoing() {
-		return (getType() == Sms.TYPE_SENT);
+	public boolean isOutgoing(Context context) {
+		ArrayList<Sms> msges = getMessages(context); 
+		if(msges.size() == 0) {
+			return false;
+		}
+		return msges.get(0).isOutgoing();
 	}
 	
 	public boolean isError() {
