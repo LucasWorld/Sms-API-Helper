@@ -260,17 +260,14 @@ public class Sms implements Serializable, Comparable<Sms> {
 				getContentValues(), Column._ID + "=?", new String[] { Long.toString(getId()) });
 	}
 	
-	public void setErrorAndStatus(int errorCode, int statusCode) {
+	public int setErrorAndStatus(Context context, int errorCode, int statusCode, boolean update) {
 		this.errorCode = errorCode;
 		this.status = statusCode;
-	}
-	
-	public int setStatusCode(Context context, int statusCode, boolean update) {
-		ContentValues values = new ContentValues(1);
-		this.status = statusCode;
-		values.put(Column.STATUS, this.status);
 		if(update) {
-			return update(context, values);
+			ContentValues values = new ContentValues(2);
+			values.put(Column.ERROR_CODE, errorCode);
+			values.put(Column.STATUS, statusCode);
+			return context.getContentResolver().update(Constants.SMS_ALL, values, Column._ID + "=" + getId(), null);
 		} else {
 			return -1;
 		}
