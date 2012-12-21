@@ -1,7 +1,10 @@
 package com.afollestad.smshelper;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
@@ -11,6 +14,8 @@ import java.util.Calendar;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.telephony.SmsMessage;
 import android.util.Base64;
@@ -20,26 +25,140 @@ public class Sms implements Serializable, Comparable<Sms> {
 	private static final long serialVersionUID = -6711776602850418239L;
 
 	private Sms() { }
-	public Sms(Cursor cursor) {
-		id = cursor.getLong(cursor.getColumnIndex(Column._ID));
-		threadId = cursor.getLong(cursor.getColumnIndex(Column.THREAD_ID)); 
-		address = cursor.getString(cursor.getColumnIndex(Column.ADDRESS));
-		person = cursor.getLong(cursor.getColumnIndex(Column.PERSON));
-		date = cursor.getLong(cursor.getColumnIndex(Column.DATE));
-		dateSent = cursor.getLong(cursor.getColumnIndex(Column.DATE_SENT));
-		protocol = cursor.getInt(cursor.getColumnIndex(Column.PROTOCOL));
-		read = cursor.getInt(cursor.getColumnIndex(Column.READ));
-		status = cursor.getInt(cursor.getColumnIndex(Column.STATUS));
-		type = cursor.getInt(cursor.getColumnIndex(Column.TYPE));
-		replyPathPresent = cursor.getInt(cursor.getColumnIndex(Column.REPLY_PATH_PRESENT));
-		subject = cursor.getString(cursor.getColumnIndex(Column.SUBJECT));
-		body = cursor.getString(cursor.getColumnIndex(Column.BODY));
-		serviceCenter = cursor.getString(cursor.getColumnIndex(Column.SERVICE_CENTER)); 
-		locked = cursor.getInt(cursor.getColumnIndex(Column.LOCKED));
-		errorCode = cursor.getInt(cursor.getColumnIndex(Column.ERROR_CODE));
-		seen = cursor.getInt(cursor.getColumnIndex(Column.SEEN));
+	public static Sms fromCursor(Cursor cursor) {
+		Sms toreturn = new Sms();
+		toreturn.id = cursor.getLong(cursor.getColumnIndex(Column._ID));
+		toreturn.threadId = cursor.getLong(cursor.getColumnIndex(Column.THREAD_ID)); 
+		toreturn.address = cursor.getString(cursor.getColumnIndex(Column.ADDRESS));
+		toreturn.person = cursor.getLong(cursor.getColumnIndex(Column.PERSON));
+		toreturn.date = cursor.getLong(cursor.getColumnIndex(Column.DATE));
+		toreturn.dateSent = cursor.getLong(cursor.getColumnIndex(Column.DATE_SENT));
+		toreturn.protocol = cursor.getInt(cursor.getColumnIndex(Column.PROTOCOL));
+		toreturn.read = cursor.getInt(cursor.getColumnIndex(Column.READ));
+		toreturn.status = cursor.getInt(cursor.getColumnIndex(Column.STATUS));
+		toreturn.type = cursor.getInt(cursor.getColumnIndex(Column.TYPE));
+		toreturn.replyPathPresent = cursor.getInt(cursor.getColumnIndex(Column.REPLY_PATH_PRESENT));
+		toreturn.subject = cursor.getString(cursor.getColumnIndex(Column.SUBJECT));
+		toreturn.body = cursor.getString(cursor.getColumnIndex(Column.BODY));
+		toreturn.serviceCenter = cursor.getString(cursor.getColumnIndex(Column.SERVICE_CENTER)); 
+		toreturn.locked = cursor.getInt(cursor.getColumnIndex(Column.LOCKED));
+		toreturn.errorCode = cursor.getInt(cursor.getColumnIndex(Column.ERROR_CODE));
+		toreturn.seen = cursor.getInt(cursor.getColumnIndex(Column.SEEN));
+		return toreturn;
 	}
+	public static Sms fromCursorMms(Cursor cursor, Context context) {
+		Sms toreturn = new Sms();
+		toreturn.id = cursor.getLong(cursor.getColumnIndex(Column._ID));
+		toreturn.isMms = true;
+		
+		Cursor partCursor = context.getContentResolver().query(Constants.MMS_PART, null,
+			    Column.MID + " = " + toreturn.id, null, null);
+		while(partCursor.moveToNext()) {
+			String partId = partCursor.getString(partCursor.getColumnIndex(Column._ID));
+			String type = partCursor.getString(partCursor.getColumnIndex(Column.CT));
+			if (MIME_PLAIN.equals(type)) {
+				String data = partCursor.getString(partCursor.getColumnIndex(Column._DATA));
+	            if (data != null) {
+	                toreturn.body = getMmsText(context, partId);
+	            } else {
+	                toreturn.body = partCursor.getString(partCursor.getColumnIndex(Column.TEXT));
+	            }
+			} else {
+				toreturn.mediaUri = Uri.withAppendedPath(Constants.MMS_PART, partId);
+			}
+		}
+		partCursor.close();
+		toreturn.address = getMmsAddress(context, Long.toString(toreturn.id));
 
+		toreturn.threadId = cursor.getLong(cursor.getColumnIndex(Column.THREAD_ID)); 
+		//TODO toreturn.person = cursor.getLong(cursor.getColumnIndex(Column.PERSON));
+		//toreturn.protocol = cursor.getInt(cursor.getColumnIndex(Column.PROTOCOL));
+		//toreturn.status = cursor.getInt(cursor.getColumnIndex(Column.STATUS));
+		//toreturn.type = cursor.getInt(cursor.getColumnIndex(Column.TYPE));
+		//toreturn.replyPathPresent = cursor.getInt(cursor.getColumnIndex(Column.REPLY_PATH_PRESENT));
+		//toreturn.subject = cursor.getString(cursor.getColumnIndex(Column.SUBJECT));
+		//toreturn.serviceCenter = cursor.getString(cursor.getColumnIndex(Column.SERVICE_CENTER));
+		//toreturn.errorCode = cursor.getInt(cursor.getColumnIndex(Column.ERROR_CODE));
+		toreturn.date = cursor.getLong(cursor.getColumnIndex(Column.DATE));
+		toreturn.dateSent = cursor.getLong(cursor.getColumnIndex(Column.DATE_SENT));
+		toreturn.read = cursor.getInt(cursor.getColumnIndex(Column.READ)); 
+		toreturn.locked = cursor.getInt(cursor.getColumnIndex(Column.LOCKED));
+		toreturn.seen = cursor.getInt(cursor.getColumnIndex(Column.SEEN));
+		return toreturn;
+	}
+	public static Sms newSms(Context context, Long person, Long threadId, String body, boolean outgoing, ContactCache cache, boolean isemail) {
+		Calendar now = Calendar.getInstance();
+		Contact contact = Contact.getFromId(context, person, cache);
+		if(contact == null) {
+			return null;
+		}
+		Sms msg = new Sms();
+		msg.date = now.getTimeInMillis();
+		msg.dateSent = now.getTimeInMillis();
+		msg.person = person;
+		msg.address = contact.getAddress();
+		msg.threadId = threadId;
+		msg.body = body;
+		msg.type = (outgoing ? TYPE_SENT : TYPE_RECEIVED);
+		msg.isemail = isemail;
+		return msg;
+	}
+	public static Sms fromStockSms(Context context, SmsMessage sms, boolean outgoing) {
+		Sms toreturn = new Sms();
+		toreturn.body = sms.getDisplayMessageBody();
+		toreturn.address = sms.getDisplayOriginatingAddress();
+		toreturn.isemail = sms.isEmail(); 
+		toreturn.status = sms.getStatus();
+		toreturn.date = sms.getTimestampMillis();
+		toreturn.dateSent = sms.getTimestampMillis();
+		toreturn.protocol = sms.getProtocolIdentifier();
+		toreturn.replyPathPresent = sms.isReplyPathPresent() ? 1 : 0;
+		toreturn.serviceCenter = sms.getServiceCenterAddress();
+		toreturn.type = outgoing ? TYPE_SENT : TYPE_RECEIVED;
+		return toreturn;
+	}	
+	private static String getMmsText(Context context, String id) {
+		Uri partURI = Uri.withAppendedPath(Constants.MMS_PART, id);
+		InputStream is = null;
+		StringBuilder sb = new StringBuilder();
+		try {
+			is = context.getContentResolver().openInputStream(partURI);
+			if (is != null) {
+				InputStreamReader isr = new InputStreamReader(is, "UTF-8");
+				BufferedReader reader = new BufferedReader(isr);
+				String temp = reader.readLine();
+				while (temp != null) {
+					sb.append(temp);
+					temp = reader.readLine();
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			if (is != null) {
+				try {
+					is.close();
+				} catch (Exception e) {}
+			}
+		}
+		return sb.toString();
+	}
+	private static String getMmsAddress(Context context, String id) {
+	    Uri uriAddress = Uri.parse("content://mms/" + id + "/addr");
+	    Cursor cAdd = context.getContentResolver().query(uriAddress, null,
+	    		"msg_id=" + id, null, null);
+	    String name = null;
+	    while(cAdd.moveToNext()) {
+	    	String number = cAdd.getString(cAdd.getColumnIndex(Column.ADDRESS));
+            if (number != null) {
+                name = Tools.stripNumber(number);
+            }
+	    }
+	    cAdd.close();
+	    return name;
+	}
+	
 	private long id;
 	private long threadId;
 	private String address;
@@ -58,6 +177,11 @@ public class Sms implements Serializable, Comparable<Sms> {
 	private int errorCode = Sms.ERROR_NONE;
 	private int seen;
 	private boolean isemail;
+	private boolean isMms;
+	private Uri mediaUri;
+
+	public final static String MIME_PLAIN = "text/plain";
+	public final static String MIME_MMS = "application/vnd.wap.multipart.related";
 
 	public final static int TYPE_SENT = 2;
 	public final static int TYPE_RECEIVED = 1;
@@ -86,39 +210,11 @@ public class Sms implements Serializable, Comparable<Sms> {
 		public final static String LOCKED = "locked";
 		public final static String ERROR_CODE = "error_code";
 		public final static String SEEN = "seen";
-	}
 
-	public static Sms newSms(Context context, Long person, Long threadId, String body, boolean outgoing, ContactCache cache, boolean isemail) {
-		Calendar now = Calendar.getInstance();
-		Contact contact = Contact.getFromId(context, person, cache);
-		if(contact == null) {
-			return null;
-		}
-		Sms msg = new Sms();
-		msg.date = now.getTimeInMillis();
-		msg.dateSent = now.getTimeInMillis();
-		msg.person = person;
-		msg.address = contact.getAddress();
-		msg.threadId = threadId;
-		msg.body = body;
-		msg.type = (outgoing ? TYPE_SENT : TYPE_RECEIVED);
-		msg.isemail = isemail;
-		return msg;
-	}
-
-	public static Sms fromStockSms(Context context, SmsMessage sms, boolean outgoing) {
-		Sms toreturn = new Sms();
-		toreturn.body = sms.getDisplayMessageBody();
-		toreturn.address = sms.getDisplayOriginatingAddress();
-		toreturn.isemail = sms.isEmail(); 
-		toreturn.status = sms.getStatus();
-		toreturn.date = sms.getTimestampMillis();
-		toreturn.dateSent = sms.getTimestampMillis();
-		toreturn.protocol = sms.getProtocolIdentifier();
-		toreturn.replyPathPresent = sms.isReplyPathPresent() ? 1 : 0;
-		toreturn.serviceCenter = sms.getServiceCenterAddress();
-		toreturn.type = outgoing ? TYPE_SENT : TYPE_RECEIVED;
-		return toreturn;
+		public final static String MID = "mid";
+		public final static String CT = "ct";
+		public final static String _DATA = "_data";
+		public final static String TEXT = "text";
 	}
 
 	public ContentValues getContentValues() {
@@ -140,16 +236,52 @@ public class Sms implements Serializable, Comparable<Sms> {
 	}
 
 	public static Sms[] getAllUnread(Context context) {
-		Cursor cursor = context.getContentResolver().query(Constants.SMS_ALL, 
+		Cursor smsCursor = context.getContentResolver().query(Constants.SMS_ALL, 
 				null, Column.READ + " = 0", null, null);
 		ArrayList<Sms> unread = new ArrayList<Sms>(); 
-		while(cursor.moveToNext()) {
-			if(cursor.getInt(cursor.getColumnIndex(Sms.Column.READ)) == 0) {
-				unread.add(new Sms(cursor));
+		while(smsCursor.moveToNext()) {
+			if(smsCursor.getInt(smsCursor.getColumnIndex(Sms.Column.READ)) == 0) {
+				unread.add(Sms.fromCursor(smsCursor));
 			}
 		}
-		cursor.close();
+		smsCursor.close();
+		
+		Cursor mmsCursor = context.getContentResolver().query(Constants.MMS_ALL, 
+				null, Column.READ + " = 0", null, null);
+		while(mmsCursor.moveToNext()) {
+			if(mmsCursor.getInt(mmsCursor.getColumnIndex(Sms.Column.READ)) == 0) {
+				unread.add(Sms.fromCursorMms(mmsCursor, context));
+			}
+		}
+		mmsCursor.close();
+		
 		return unread.toArray(new Sms[0]);
+	}
+
+	public boolean isMms() {
+		return isMms;
+	}
+
+	public Uri getMediaUri() {
+		return mediaUri;
+	}
+
+	public Bitmap getMedia(Context context) {
+		InputStream is = null;
+		Bitmap bitmap = null;
+		try {
+			is = context.getContentResolver().openInputStream(mediaUri);
+			bitmap = BitmapFactory.decodeStream(is);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (is != null) {
+				try {
+					is.close();
+				} catch (Exception e) { }
+			}
+		}
+		return bitmap;
 	}
 
 	public long getId() {
@@ -259,7 +391,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 		return context.getContentResolver().update(Constants.SMS_ALL, 
 				getContentValues(), Column._ID + "=?", new String[] { Long.toString(getId()) });
 	}
-	
+
 	public int setErrorAndStatus(Context context, int errorCode, int statusCode, boolean update) {
 		this.errorCode = errorCode;
 		this.status = statusCode;
@@ -281,8 +413,9 @@ public class Sms implements Serializable, Comparable<Sms> {
 		Uri row = context.getContentResolver().insert(uri, getContentValues());
 		Cursor cursor = context.getContentResolver().query(row, null, null, null, null);
 		cursor.moveToFirst();
-		Sms toreturn = new Sms(cursor);
+		Sms toreturn = Sms.fromCursor(cursor);
 		cursor.close();
+		//TODO MMS
 		return toreturn;
 	}
 
@@ -328,7 +461,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 	public int delete(Context context) {
 		return context.getContentResolver().delete(Constants.SMS_ALL, "thread_id=" + getThreadId() + " and _id=" + getId(), null);
 	}
-	
+
 	public static class SmsComparator implements java.util.Comparator<Sms> {
 
 		@Override

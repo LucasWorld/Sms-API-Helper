@@ -11,11 +11,10 @@ import java.util.Calendar;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
-import android.net.Uri;
 import android.util.Base64;
 
 public class Conversation implements Serializable {
-	
+
 	private static final long serialVersionUID = 6251878782078550182L;
 
 	public static class Column {
@@ -24,35 +23,35 @@ public class Conversation implements Serializable {
 		 */
 		public static final String _ID = "_id";
 		/**
-         * The date at which the thread was created.
-         */
-        public static final String DATE = "date";
-        /**
-         * A string encoding of the recipient IDs of the recipients of the
-         * message, in numerical order and separated by spaces.
-         */
-        public static final String RECIPIENT_IDS = "recipient_ids";
-        /**
-         * The message count of the thread.
-         */
-        public static final String MESSAGE_COUNT = "message_count";
-        /**
-         * Indicates whether all messages of the thread have been read.
-         */
-        public static final String READ = "read";
-        /**
-         * Type of the thread, either Threads.COMMON_THREAD or
-         * Threads.BROADCAST_THREAD.
-         */
-        public static final String TYPE = "type";
-        /**
-         * Indicates whether there is a transmission error in the thread.
-         */
-        public static final String ERROR = "error";
-        /**
-         * Indicates whether this thread contains any attachments.
-         */
-        public static final String HAS_ATTACHMENT = "has_attachment";
+		 * The date at which the thread was created.
+		 */
+		public static final String DATE = "date";
+		/**
+		 * A string encoding of the recipient IDs of the recipients of the
+		 * message, in numerical order and separated by spaces.
+		 */
+		public static final String RECIPIENT_IDS = "recipient_ids";
+		/**
+		 * The message count of the thread.
+		 */
+		public static final String MESSAGE_COUNT = "message_count";
+		/**
+		 * Indicates whether all messages of the thread have been read.
+		 */
+		public static final String READ = "read";
+		/**
+		 * Type of the thread, either Threads.COMMON_THREAD or
+		 * Threads.BROADCAST_THREAD.
+		 */
+		public static final String TYPE = "type";
+		/**
+		 * Indicates whether there is a transmission error in the thread.
+		 */
+		public static final String ERROR = "error";
+		/**
+		 * Indicates whether this thread contains any attachments.
+		 */
+		public static final String HAS_ATTACHMENT = "has_attachment";
 	}
 
 	private Conversation() {
@@ -70,7 +69,7 @@ public class Conversation implements Serializable {
 		toreturn.hasAttachment = cursor.getInt(cursor.getColumnIndex(Column.HAS_ATTACHMENT));
 		return toreturn;
 	}
-	
+
 	public ContentValues getContentValues() {
 		ContentValues val = new ContentValues(10);
 		val.put(Column._ID, this.getId());
@@ -92,12 +91,12 @@ public class Conversation implements Serializable {
 		Cursor cursor = context.getContentResolver().query(Constants.ALL_CONVERSATIONS_URI, 
 				null, where, null, null);
 		ArrayList<Conversation> toreturn = new ArrayList<Conversation>();
-        while(cursor.moveToNext()) {
-        	toreturn.add(Conversation.fromCursor(context, cursor));
-        }
+		while(cursor.moveToNext()) {
+			toreturn.add(Conversation.fromCursor(context, cursor));
+		}
 		return toreturn.toArray(new Conversation[0]);
 	}
-	
+
 	public static Conversation get(Context context, long threadId) {
 		Conversation[] convos = getAll(context, Column._ID + " = " + threadId);
 		if(convos == null || convos.length == 0) {
@@ -105,11 +104,11 @@ public class Conversation implements Serializable {
 		}
 		return convos[0];
 	}
-	
+
 	public static Conversation[] getAll(Context context) {
 		return getAll(context, null);
 	}
-	
+
 	private long id;
 	private long date;
 	private long messageCount;
@@ -132,7 +131,7 @@ public class Conversation implements Serializable {
 			smsMessages.add(smsMessages.size() - 1, msg);
 		}
 	}
-	
+
 	public long getId() {
 		return id;
 	}
@@ -158,11 +157,11 @@ public class Conversation implements Serializable {
 		}
 		return topMsg.isEmail();
 	}
-	
+
 	public Contact getRecipient(Context context, ContactCache cache) {
 		return Contact.getFromId(context, getRecipientIds().get(0), cache);
 	}
-	
+
 	public ArrayList<Long> getRecipientIds() {
 		ArrayList<Long> toReturn = new ArrayList<Long>();
 		for(String id : recipientIds.split(" ")) {
@@ -194,31 +193,39 @@ public class Conversation implements Serializable {
 		}
 		return msges.get(0).isOutgoing();
 	}
-	
+
 	public boolean isError() {
 		return (error < -1 || error > 0);
 	}
-	
+
 	public boolean hasAttachment() {
 		return (hasAttachment == 1);
 	}
-	
+
 	public ArrayList<Sms> getMessages(Context context) {
 		return getMessages(context, true);
 	}
-	
+
 	public ArrayList<Sms> getMessages(Context context, boolean cached) {
 		if(!cached) {
 			smsMessages = null;
 		}
 		if(smsMessages == null || smsMessages.size() == 0) {
 			smsMessages = new ArrayList<Sms>();
-			Uri uri = Uri.withAppendedPath(Constants.CONVERSATION_SMS_URI, Long.toString(this.getId()));
-			Cursor cursor = context.getContentResolver().query(uri, null, null, null, null);
-			while(cursor.moveToNext()) {
-				smsMessages.add(new Sms(cursor));
+
+			Cursor smsCursor = context.getContentResolver().query(Constants.SMS_ALL, null, 
+					Sms.Column.THREAD_ID + " = " + getId(), null, null);
+			while(smsCursor.moveToNext()) {
+				smsMessages.add(Sms.fromCursor(smsCursor));
 			}
-			cursor.close();
+			smsCursor.close();
+
+			Cursor mmsCursor = context.getContentResolver().query(Constants.MMS_ALL, null, 
+					Sms.Column.THREAD_ID + " = " + getId(), null, null);
+			while(mmsCursor.moveToNext()) {
+				smsMessages.add(Sms.fromCursorMms(mmsCursor, context));
+			}
+			mmsCursor.close();
 		}
 		return smsMessages;
 	}
@@ -227,22 +234,31 @@ public class Conversation implements Serializable {
 	 * Marks all SMS messages in the conversation as read.
 	 */
 	public void markMessagesRead(Context context) {
-		Uri uri = Uri.withAppendedPath(Constants.CONVERSATION_SMS_URI, Long.toString(this.getId()));
-		Cursor cursor = context.getContentResolver().query(uri, null, Sms.Column.READ + " = 0", null, null);
-		while(cursor.moveToNext()) {
-			new Sms(cursor).setIsRead(context, true);
+		Cursor smsCursor = context.getContentResolver().query(Constants.SMS_ALL, null, 
+				Sms.Column.READ + " = 0 AND " + Sms.Column.THREAD_ID + " = " + getId(), null, null);
+		while(smsCursor.moveToNext()) {
+			Sms.fromCursor(smsCursor).setIsRead(context, true);
 		}
-		cursor.close();
+		smsCursor.close();
+
+		Cursor mmsCursor = context.getContentResolver().query(Constants.MMS_ALL, null, 
+				Sms.Column.READ + " = 0 AND " + Sms.Column.THREAD_ID + " = " + getId(), null, null);
+		while(mmsCursor.moveToNext()) {
+			Sms.fromCursorMms(mmsCursor, context).setIsRead(context, true);
+		}
+		mmsCursor.close();
 	}
-	
+
 	/**
 	 * Deletes the conversation from the content resolver, returns number of rows that were deleted (should return 1 if successful).
 	 */
 	public int delete(Context context) {
-		Uri uri = Uri.withAppendedPath(Constants.CONVERSATION_SMS_URI, Long.toString(this.getId()));
-		return context.getContentResolver().delete(uri, null, null);
+		int toreturn = 0;
+		toreturn += context.getContentResolver().delete(Constants.SMS_ALL, Sms.Column.THREAD_ID + " = " + getId(), null);
+		toreturn += context.getContentResolver().delete(Constants.MMS_ALL, Sms.Column.THREAD_ID + " = " + getId(), null);
+		return toreturn;
 	}
-	
+
 	public static Sms deserializeObject(String input) {
 		try {
 			byte[] data = Base64.decode(input, Base64.DEFAULT);
