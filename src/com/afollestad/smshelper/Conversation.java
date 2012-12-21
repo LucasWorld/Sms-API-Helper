@@ -175,7 +175,11 @@ public class Conversation implements Serializable {
 		if(msges.size() == 0) {
 			return null;
 		}
-		return msges.get(0).getBody();
+		String snippet = null;
+		if(msges.get(0).getBody() != null) {
+			snippet = msges.get(0).getBody();
+		}
+		return snippet;
 	}
 
 	public boolean isRead() {
@@ -212,7 +216,7 @@ public class Conversation implements Serializable {
 		}
 		if(smsMessages == null || smsMessages.size() == 0) {
 			smsMessages = new ArrayList<Sms>();
-
+			
 			Cursor smsCursor = context.getContentResolver().query(Constants.SMS_ALL, null, 
 					Sms.Column.THREAD_ID + " = " + getId(), null, null);
 			while(smsCursor.moveToNext()) {
@@ -223,7 +227,9 @@ public class Conversation implements Serializable {
 			Cursor mmsCursor = context.getContentResolver().query(Constants.MMS_ALL, null, 
 					Sms.Column.THREAD_ID + " = " + getId(), null, null);
 			while(mmsCursor.moveToNext()) {
-				smsMessages.add(Sms.fromCursorMms(mmsCursor, context));
+				Sms mms = Sms.fromCursorMms(mmsCursor, context);
+				System.out.println(mms.getAddress() + ": " + mms.getBody() + " (" + mms.getMediaUri().toString() + ")");
+				smsMessages.add(mms);
 			}
 			mmsCursor.close();
 		}

@@ -61,10 +61,11 @@ public class Sms implements Serializable, Comparable<Sms> {
 	            if (data != null) {
 	                toreturn.body = getMmsText(context, partId);
 	            } else {
-	                toreturn.body = partCursor.getString(partCursor.getColumnIndex(Column.TEXT));
+	            	toreturn.body = partCursor.getString(partCursor.getColumnIndex(Column.TEXT));
 	            }
 			} else {
 				toreturn.mediaUri = Uri.withAppendedPath(Constants.MMS_PART, partId);
+				toreturn.body = partCursor.getString(partCursor.getColumnIndex(Column.TEXT));
 			}
 		}
 		partCursor.close();
@@ -147,7 +148,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 	private static String getMmsAddress(Context context, String id) {
 	    Uri uriAddress = Uri.parse("content://mms/" + id + "/addr");
 	    Cursor cAdd = context.getContentResolver().query(uriAddress, null,
-	    		"msg_id=" + id, null, null);
+	    		Column.MSG_ID + " = " + id, null, null);
 	    String name = null;
 	    while(cAdd.moveToNext()) {
 	    	String number = cAdd.getString(cAdd.getColumnIndex(Column.ADDRESS));
@@ -215,6 +216,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 		public final static String CT = "ct";
 		public final static String _DATA = "_data";
 		public final static String TEXT = "text";
+		public final static String MSG_ID = "msg_id";
 	}
 
 	public ContentValues getContentValues() {
