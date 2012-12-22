@@ -18,6 +18,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.telephony.SmsMessage;
+import android.telephony.TelephonyManager;
 import android.util.Base64;
 
 public class Sms implements Serializable, Comparable<Sms> {
@@ -46,7 +47,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 		toreturn.seen = cursor.getInt(cursor.getColumnIndex(Column.SEEN));
 		return toreturn;
 	}
-	public static Sms fromCursorMms(Cursor cursor, Context context) {
+	public static Sms fromCursorMms(Cursor cursor, Context context, String myNumber, String endAddress) {
 		Sms toreturn = new Sms();
 		toreturn.id = cursor.getLong(cursor.getColumnIndex(Column._ID));
 		toreturn.isMms = true;
@@ -69,19 +70,25 @@ public class Sms implements Serializable, Comparable<Sms> {
 			}
 		}
 		partCursor.close();
+		
 		toreturn.address = getMmsAddress(context, Long.toString(toreturn.id));
-
-		toreturn.threadId = cursor.getLong(cursor.getColumnIndex(Column.THREAD_ID)); 
+		if(toreturn.address.equals(myNumber)) {
+			toreturn.type = Sms.TYPE_RECEIVED;
+			toreturn.address = endAddress;
+		} else {
+			toreturn.type = Sms.TYPE_SENT;
+		}
+		
+		toreturn.threadId = cursor.getLong(cursor.getColumnIndex(Column.THREAD_ID));
 		//TODO toreturn.person = cursor.getLong(cursor.getColumnIndex(Column.PERSON));
 		//toreturn.protocol = cursor.getInt(cursor.getColumnIndex(Column.PROTOCOL));
 		//toreturn.status = cursor.getInt(cursor.getColumnIndex(Column.STATUS));
-		//toreturn.type = cursor.getInt(cursor.getColumnIndex(Column.TYPE));
 		//toreturn.replyPathPresent = cursor.getInt(cursor.getColumnIndex(Column.REPLY_PATH_PRESENT));
 		//toreturn.subject = cursor.getString(cursor.getColumnIndex(Column.SUBJECT));
 		//toreturn.serviceCenter = cursor.getString(cursor.getColumnIndex(Column.SERVICE_CENTER));
 		//toreturn.errorCode = cursor.getInt(cursor.getColumnIndex(Column.ERROR_CODE));
-		toreturn.date = cursor.getLong(cursor.getColumnIndex(Column.DATE));
-		toreturn.dateSent = cursor.getLong(cursor.getColumnIndex(Column.DATE_SENT));
+		toreturn.date = cursor.getLong(cursor.getColumnIndex(Column.DATE)) * 1000;
+		toreturn.dateSent = cursor.getLong(cursor.getColumnIndex(Column.DATE_SENT)) * 1000;
 		toreturn.read = cursor.getInt(cursor.getColumnIndex(Column.READ)); 
 		toreturn.locked = cursor.getInt(cursor.getColumnIndex(Column.LOCKED));
 		toreturn.seen = cursor.getInt(cursor.getColumnIndex(Column.SEEN));
@@ -153,7 +160,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 	    while(cAdd.moveToNext()) {
 	    	String number = cAdd.getString(cAdd.getColumnIndex(Column.ADDRESS));
             if (number != null) {
-                name = Tools.stripNumber(number);
+                name = number;
             }
 	    }
 	    cAdd.close();
@@ -250,9 +257,10 @@ public class Sms implements Serializable, Comparable<Sms> {
 		
 		Cursor mmsCursor = context.getContentResolver().query(Constants.MMS_ALL, 
 				null, Column.READ + " = 0", null, null);
+		TelephonyManager manager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
 		while(mmsCursor.moveToNext()) {
 			if(mmsCursor.getInt(mmsCursor.getColumnIndex(Sms.Column.READ)) == 0) {
-				unread.add(Sms.fromCursorMms(mmsCursor, context));
+				unread.add(Sms.fromCursorMms(mmsCursor, context, manager.getLine1Number(), null));
 			}
 		}
 		mmsCursor.close();

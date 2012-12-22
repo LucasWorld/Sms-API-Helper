@@ -11,6 +11,7 @@ import java.util.Calendar;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.telephony.TelephonyManager;
 import android.util.Base64;
 
 public class Conversation implements Serializable {
@@ -197,6 +198,15 @@ public class Conversation implements Serializable {
 		}
 		return msges.get(0).isOutgoing();
 	}
+	
+	public String getAddress(Context context) {
+		//TODO multiple recipient support?
+		ArrayList<Sms> msges = getMessages(context); 
+		if(msges.size() == 0) {
+			return null;
+		}
+		return msges.get(0).getAddress();
+	}
 
 	public boolean isError() {
 		return (error < -1 || error > 0);
@@ -226,9 +236,9 @@ public class Conversation implements Serializable {
 
 			Cursor mmsCursor = context.getContentResolver().query(Constants.MMS_ALL, null, 
 					Sms.Column.THREAD_ID + " = " + getId(), null, null);
+			TelephonyManager manager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
 			while(mmsCursor.moveToNext()) {
-				Sms mms = Sms.fromCursorMms(mmsCursor, context);
-				System.out.println(mms.getAddress() + ": " + mms.getBody() + " (" + mms.getMediaUri().toString() + ")");
+				Sms mms = Sms.fromCursorMms(mmsCursor, context, manager.getLine1Number(), getAddress(context));
 				smsMessages.add(mms);
 			}
 			mmsCursor.close();
@@ -249,8 +259,9 @@ public class Conversation implements Serializable {
 
 		Cursor mmsCursor = context.getContentResolver().query(Constants.MMS_ALL, null, 
 				Sms.Column.READ + " = 0 AND " + Sms.Column.THREAD_ID + " = " + getId(), null, null);
+		TelephonyManager manager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
 		while(mmsCursor.moveToNext()) {
-			Sms.fromCursorMms(mmsCursor, context).setIsRead(context, true);
+			Sms.fromCursorMms(mmsCursor, context, manager.getLine1Number(), getAddress(context)).setIsRead(context, true);
 		}
 		mmsCursor.close();
 	}
