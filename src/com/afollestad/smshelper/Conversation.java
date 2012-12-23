@@ -7,6 +7,7 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -242,6 +243,8 @@ public class Conversation implements Serializable {
 				smsMessages.add(mms);
 			}
 			mmsCursor.close();
+			
+			Collections.sort(smsMessages, new Sms.SmsReverseComparator());
 		}
 		return smsMessages;
 	}
