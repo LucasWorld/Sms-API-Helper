@@ -20,7 +20,6 @@ public class Conversation implements Serializable {
 
 	private static class Column {
 		public final static String _ID = "_id"; // = 1950
-		public final static String PERSON = "person"; // = 440
 		public final static String ADDRESS = "address"; // = 6512784578
 		public final static String SUBJECT = "subject"; // = null
 		public final static String BODY = "body";  //= So you can't drive now? That's all you had to say. And yeah I know i'm bipolar pms if you didnt know 
@@ -34,7 +33,7 @@ public class Conversation implements Serializable {
 		public final static String LOCKED = "locked"; // = 0
 	}
 	private final static String[] PROJECTION = new String[] {
-		Column._ID, Column.PERSON, Column.ADDRESS, Column.SUBJECT, Column.BODY, Column.TYPE,
+		Column._ID, Column.ADDRESS, Column.SUBJECT, Column.BODY, Column.TYPE,
 		Column.DATE, Column.DATE_SENT, Column.READ, Column.THREAD_ID, Column.STATUS, Column.ERROR_CODE, Column.LOCKED
 	};
 
@@ -42,7 +41,6 @@ public class Conversation implements Serializable {
 	private static Conversation fromCursor(Context context, Cursor cursor, ContactCache cache) {
 		Conversation toreturn = new Conversation();
 		toreturn.id = cursor.getLong(cursor.getColumnIndex(Column._ID));
-		toreturn.person = cursor.getLong(cursor.getColumnIndex(Column.PERSON));
 		toreturn.address = cursor.getString(cursor.getColumnIndex(Column.ADDRESS));
 		toreturn.subject = cursor.getString(cursor.getColumnIndex(Column.SUBJECT));
 		toreturn.snippet = cursor.getString(cursor.getColumnIndex(Column.BODY));
@@ -56,7 +54,9 @@ public class Conversation implements Serializable {
 		toreturn.locked = cursor.getInt(cursor.getColumnIndex(Column.READ));
 		
 		toreturn.getMessages(context);
-		toreturn.name = toreturn.getRecipient(context, cache).getName();
+		Contact contact = toreturn.getRecipient(context, cache);
+		toreturn.person = contact.getId();
+		toreturn.name = contact.getName();
 		
 		return toreturn;
 	}
