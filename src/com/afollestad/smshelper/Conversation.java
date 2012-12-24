@@ -19,41 +19,16 @@ public class Conversation implements Serializable {
 
 	private static final long serialVersionUID = 6251878782078550182L;
 
-	public static class Column {
-		/**
-		 * The ID of the conversation row.
-		 */
+	private static class Column {
 		public static final String _ID = "_id";
-		/**
-		 * The date at which the thread was created.
-		 */
 		public static final String DATE = "date";
-		/**
-		 * A string encoding of the recipient IDs of the recipients of the
-		 * message, in numerical order and separated by spaces.
-		 */
 		public static final String RECIPIENT_IDS = "recipient_ids";
-		/**
-		 * The message count of the thread.
-		 */
 		public static final String MESSAGE_COUNT = "message_count";
-		/**
-		 * Indicates whether all messages of the thread have been read.
-		 */
 		public static final String READ = "read";
-		/**
-		 * Type of the thread, either Threads.COMMON_THREAD or
-		 * Threads.BROADCAST_THREAD.
-		 */
 		public static final String TYPE = "type";
-		/**
-		 * Indicates whether there is a transmission error in the thread.
-		 */
 		public static final String ERROR = "error";
-		/**
-		 * Indicates whether this thread contains any attachments.
-		 */
 		public static final String HAS_ATTACHMENT = "has_attachment";
+		public static final String SNIPPET = "snippet";
 	}
 
 	private Conversation() {
@@ -69,6 +44,7 @@ public class Conversation implements Serializable {
 		toreturn.type = cursor.getInt(cursor.getColumnIndex(Column.TYPE));
 		toreturn.error = cursor.getInt(cursor.getColumnIndex(Column.ERROR));
 		toreturn.hasAttachment = cursor.getInt(cursor.getColumnIndex(Column.HAS_ATTACHMENT));
+		toreturn.snippet = cursor.getString(cursor.getColumnIndex(Column.SNIPPET));
 		return toreturn;
 	}
 
@@ -119,20 +95,8 @@ public class Conversation implements Serializable {
 	private int type;
 	private int error;
 	private int hasAttachment;
+	private String snippet;
 	private ArrayList<Sms> smsMessages;
-
-	/**
-	 * This only temporarily adds an SMS to this conversations cache, it doesn't save to the actual conversation;
-	 * use {@link Sms#save(Context)} for that.
-	 */
-	public void addMessage(Sms msg) {
-		if(smsMessages == null || smsMessages.size() == 0) {
-			smsMessages = new ArrayList<Sms>();
-			smsMessages.add(msg);
-		} else {
-			smsMessages.add(smsMessages.size() - 1, msg);
-		}
-	}
 
 	public long getId() {
 		return id;
@@ -148,18 +112,6 @@ public class Conversation implements Serializable {
 		return messageCount;
 	}
 
-	public boolean isEmail(Context context) {
-		ArrayList<Sms> msges = getMessages(context); 
-		if(msges.size() == 0) {
-			return false;
-		}
-		Sms topMsg = msges.get(0);
-		if(topMsg.getAddress() == null) {
-			return false;
-		}
-		return topMsg.isEmail();
-	}
-
 	public Contact getRecipient(Context context, ContactCache cache) {
 		return Contact.getFromId(context, getRecipientIds().get(0), cache);
 	}
@@ -172,14 +124,9 @@ public class Conversation implements Serializable {
 		return toReturn;
 	}
 
-	public String getSnippet(Context context) {
-		ArrayList<Sms> msges = getMessages(context); 
-		if(msges.size() == 0) {
-			return null;
-		}
-		String snippet = null;
-		if(msges.get(0).getBody() != null) {
-			snippet = msges.get(0).getBody();
+	public String getSnippet() {
+		if(snippet != null && snippet.trim().isEmpty()) {
+			snippet = null;
 		}
 		return snippet;
 	}
@@ -200,15 +147,6 @@ public class Conversation implements Serializable {
 		return msges.get(0).isOutgoing();
 	}
 	
-	public String getAddress(Context context) {
-		//TODO multiple recipient support?
-		ArrayList<Sms> msges = getMessages(context); 
-		if(msges.size() == 0) {
-			return null;
-		}
-		return msges.get(0).getAddress();
-	}
-
 	public boolean isError() {
 		return (error < -1 || error > 0);
 	}
@@ -238,8 +176,9 @@ public class Conversation implements Serializable {
 			Cursor mmsCursor = context.getContentResolver().query(Constants.MMS_ALL, null, 
 					Sms.Column.THREAD_ID + " = " + getId(), null, null);
 			TelephonyManager manager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
+			String address = smsMessages.get(0).getAddress();
 			while(mmsCursor.moveToNext()) {
-				Sms mms = Sms.fromCursorMms(mmsCursor, context, manager.getLine1Number(), getAddress(context));
+				Sms mms = Sms.fromCursorMms(mmsCursor, context, manager.getLine1Number(), address);
 				smsMessages.add(mms);
 			}
 			mmsCursor.close();
@@ -256,17 +195,20 @@ public class Conversation implements Serializable {
 		Cursor smsCursor = context.getContentResolver().query(Constants.SMS_ALL, null, 
 				Sms.Column.READ + " = 0 AND " + Sms.Column.THREAD_ID + " = " + getId(), null, null);
 		while(smsCursor.moveToNext()) {
-			Sms.fromCursor(smsCursor).setIsRead(context, true);
+			Sms.fromCursor(smsCursor).setIsRead(context, true, true);
 		}
 		smsCursor.close();
 
 		Cursor mmsCursor = context.getContentResolver().query(Constants.MMS_ALL, null, 
 				Sms.Column.READ + " = 0 AND " + Sms.Column.THREAD_ID + " = " + getId(), null, null);
-		TelephonyManager manager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
 		while(mmsCursor.moveToNext()) {
-			Sms.fromCursorMms(mmsCursor, context, manager.getLine1Number(), getAddress(context)).setIsRead(context, true);
+			Sms.fromCursorMms(mmsCursor, context, null, null).setIsRead(context, true, true);
 		}
 		mmsCursor.close();
+		
+		for(Sms msg : smsMessages) {
+			msg.setIsRead(context, true, false);
+		}
 	}
 
 	/**

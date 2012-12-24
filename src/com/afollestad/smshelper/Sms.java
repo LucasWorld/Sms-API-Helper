@@ -51,26 +51,26 @@ public class Sms implements Serializable, Comparable<Sms> {
 		Sms toreturn = new Sms();
 		toreturn.id = cursor.getLong(cursor.getColumnIndex(Column._ID));
 		toreturn.isMms = true;
-		
+
 		Cursor partCursor = context.getContentResolver().query(Constants.MMS_PART, null,
-			    Column.MID + " = " + toreturn.id, null, null);
+				Column.MID + " = " + toreturn.id, null, null);
 		while(partCursor.moveToNext()) {
 			String partId = partCursor.getString(partCursor.getColumnIndex(Column._ID));
 			String type = partCursor.getString(partCursor.getColumnIndex(Column.CT));
 			if (MIME_PLAIN.equals(type)) {
 				String data = partCursor.getString(partCursor.getColumnIndex(Column._DATA));
-	            if (data != null) {
-	                toreturn.body = getMmsText(context, partId);
-	            } else {
-	            	toreturn.body = partCursor.getString(partCursor.getColumnIndex(Column.TEXT));
-	            }
+				if (data != null) {
+					toreturn.body = getMmsText(context, partId);
+				} else {
+					toreturn.body = partCursor.getString(partCursor.getColumnIndex(Column.TEXT));
+				}
 			} else {
 				toreturn.mediaUri = Uri.withAppendedPath(Constants.MMS_PART, partId);
 				toreturn.body = partCursor.getString(partCursor.getColumnIndex(Column.TEXT));
 			}
 		}
 		partCursor.close();
-		
+
 		toreturn.address = getMmsAddress(context, Long.toString(toreturn.id));
 		if(toreturn.address.equals(myNumber)) {
 			toreturn.type = Sms.TYPE_RECEIVED;
@@ -78,7 +78,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 		} else {
 			toreturn.type = Sms.TYPE_SENT;
 		}
-		
+
 		toreturn.threadId = cursor.getLong(cursor.getColumnIndex(Column.THREAD_ID));
 		//TODO toreturn.person = cursor.getLong(cursor.getColumnIndex(Column.PERSON));
 		//toreturn.protocol = cursor.getInt(cursor.getColumnIndex(Column.PROTOCOL));
@@ -94,21 +94,19 @@ public class Sms implements Serializable, Comparable<Sms> {
 		toreturn.seen = cursor.getInt(cursor.getColumnIndex(Column.SEEN));
 		return toreturn;
 	}
-	public static Sms newSms(Context context, Long person, Long threadId, String body, boolean outgoing, ContactCache cache, boolean isemail) {
+	public static Sms newSms(Context context, Contact contact, Long threadId, String body, boolean outgoing) {
 		Calendar now = Calendar.getInstance();
-		Contact contact = Contact.getFromId(context, person, cache);
 		if(contact == null) {
 			return null;
 		}
 		Sms msg = new Sms();
 		msg.date = now.getTimeInMillis();
 		msg.dateSent = now.getTimeInMillis();
-		msg.person = person;
+		msg.person = contact.getId();
 		msg.address = contact.getAddress();
 		msg.threadId = threadId;
 		msg.body = body;
 		msg.type = (outgoing ? TYPE_SENT : TYPE_RECEIVED);
-		msg.isemail = isemail;
 		return msg;
 	}
 	public static Sms fromStockSms(Context context, SmsMessage sms, boolean outgoing) {
@@ -153,20 +151,20 @@ public class Sms implements Serializable, Comparable<Sms> {
 		return sb.toString();
 	}
 	private static String getMmsAddress(Context context, String id) {
-	    Uri uriAddress = Uri.parse("content://mms/" + id + "/addr");
-	    Cursor cAdd = context.getContentResolver().query(uriAddress, null,
-	    		Column.MSG_ID + " = " + id, null, null);
-	    String name = null;
-	    while(cAdd.moveToNext()) {
-	    	String number = cAdd.getString(cAdd.getColumnIndex(Column.ADDRESS));
-            if (number != null) {
-                name = number;
-            }
-	    }
-	    cAdd.close();
-	    return name;
+		Uri uriAddress = Uri.parse("content://mms/" + id + "/addr");
+		Cursor cAdd = context.getContentResolver().query(uriAddress, null,
+				Column.MSG_ID + " = " + id, null, null);
+		String name = null;
+		while(cAdd.moveToNext()) {
+			String number = cAdd.getString(cAdd.getColumnIndex(Column.ADDRESS));
+			if (number != null) {
+				name = number;
+			}
+		}
+		cAdd.close();
+		return name;
 	}
-	
+
 	private long id;
 	private long threadId;
 	private String address;
@@ -254,7 +252,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 			}
 		}
 		smsCursor.close();
-		
+
 		Cursor mmsCursor = context.getContentResolver().query(Constants.MMS_ALL, 
 				null, Column.READ + " = 0", null, null);
 		TelephonyManager manager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
@@ -264,7 +262,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 			}
 		}
 		mmsCursor.close();
-		
+
 		return unread.toArray(new Sms[0]);
 	}
 
@@ -390,11 +388,15 @@ public class Sms implements Serializable, Comparable<Sms> {
 		return isemail;
 	}
 
-	public int setIsRead(Context context, boolean read) {
+	public int setIsRead(Context context, boolean read, boolean update) {
 		this.read = read ? 1 : 0;
-		ContentValues values = new ContentValues(1);
-		values.put(Column.READ, this.read);
-		return update(context, values);
+		if(update) {
+			ContentValues values = new ContentValues(1);
+			values.put(Column.READ, this.read);
+			return update(context, values);
+		} else {
+			return 0;
+		}
 	}
 
 	public int update(Context context, ContentValues values) {
@@ -427,13 +429,6 @@ public class Sms implements Serializable, Comparable<Sms> {
 		cursor.close();
 		//TODO MMS
 		return toreturn;
-	}
-
-	/**
-	 * This doesn't work yet.
-	 */
-	public Uri saveDraft(Context context) {
-		return context.getContentResolver().insert(Constants.SMS_DRAFTS, getContentValues());
 	}
 
 	public static Sms deserializeObject(String input) {
