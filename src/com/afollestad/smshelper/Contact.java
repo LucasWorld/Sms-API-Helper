@@ -37,6 +37,9 @@ public class Contact implements Serializable {
 	}
 	
 	public static Contact getFromNumber(Context context, String number, ContactCache cache) {
+		if(number == null) {
+			return new Contact(0l, "Unknown Name", "Unknown Number", false);
+		}
 		if(cache != null && cache.containsAddress(number)) {
 			return cache.getFromAddress(number);
 		}
