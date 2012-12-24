@@ -33,7 +33,9 @@ public class Sms implements Serializable, Comparable<Sms> {
 		toreturn.address = cursor.getString(cursor.getColumnIndex(Column.ADDRESS));
 		toreturn.person = cursor.getLong(cursor.getColumnIndex(Column.PERSON));
 		toreturn.date = cursor.getLong(cursor.getColumnIndex(Column.DATE));
+		toreturn.dateFriendly = Tools.friendlyTime(toreturn.getDate());
 		toreturn.dateSent = cursor.getLong(cursor.getColumnIndex(Column.DATE_SENT));
+		toreturn.dateSentFriendly = Tools.friendlyTime(toreturn.getDateSent());
 		toreturn.protocol = cursor.getInt(cursor.getColumnIndex(Column.PROTOCOL));
 		toreturn.read = cursor.getInt(cursor.getColumnIndex(Column.READ));
 		toreturn.status = cursor.getInt(cursor.getColumnIndex(Column.STATUS));
@@ -170,7 +172,9 @@ public class Sms implements Serializable, Comparable<Sms> {
 	private String address;
 	private long person;
 	private long date;
+	private String dateFriendly;
 	private long dateSent;
+	private String dateSentFriendly;
 	private int protocol;
 	private int read;
 	private int status = Sms.STATUS_NONE;
@@ -322,12 +326,20 @@ public class Sms implements Serializable, Comparable<Sms> {
 		return cal;
 	}
 
+	public String getDateFriendly() {
+		return dateFriendly;
+	}
+	
 	public Calendar getDateSent() {
 		Calendar cal = Calendar.getInstance();
 		cal.setTimeInMillis(dateSent);
 		return cal;
 	}
 
+	public String getDateSentFriendly() {
+		return dateSentFriendly;
+	}
+	
 	public int getProtocol() {
 		return protocol;
 	}

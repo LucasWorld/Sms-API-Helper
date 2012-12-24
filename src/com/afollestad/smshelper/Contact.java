@@ -34,8 +34,8 @@ public class Contact {
 	}
 	
 	public static Contact getFromNumber(Context context, String number, ContactCache cache) {
-		if(cache != null && cache.containsNumber(number) > -1) {
-			return cache.getFromNumber(number);
+		if(cache != null && cache.containsAddress(number)) {
+			return cache.getFromAddress(number);
 		}
 		Uri uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(number));
 		Cursor cursor = context.getContentResolver().query(uri, new String[] { PhoneLookup.DISPLAY_NAME, PhoneLookup._ID }, null, null, null);
@@ -57,8 +57,8 @@ public class Contact {
 	}
 	
 	public static Contact getFromEmail(Context context, String address, ContactCache cache) {
-		if(cache != null && cache.containsEmail(address) > -1) {
-			return cache.getFromEmail(address);
+		if(cache != null && cache.containsAddress(address)) {
+			return cache.getFromAddress(address);
 		}
 		Uri uri = Uri.withAppendedPath(Email.CONTENT_FILTER_URI, Uri.encode(address));
 		Cursor cursor = context.getContentResolver().query(uri, new String[] { Email._ID, Email.DISPLAY_NAME }, null, null, null);

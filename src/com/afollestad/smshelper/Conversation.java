@@ -37,14 +37,19 @@ public class Conversation implements Serializable {
 	private static Conversation fromCursor(Context context, Cursor cursor) {
 		Conversation toreturn = new Conversation();
 		toreturn.id = cursor.getLong(cursor.getColumnIndex(Column._ID));
-		toreturn.date = cursor.getLong(cursor.getColumnIndex(Column.DATE)); 
-		toreturn.messageCount = cursor.getLong(cursor.getColumnIndex(Column.MESSAGE_COUNT)); 
-		toreturn.recipientIds = cursor.getString(cursor.getColumnIndex(Column.RECIPIENT_IDS));
+		toreturn.date = cursor.getLong(cursor.getColumnIndex(Column.DATE));
+		toreturn.dateFriendly = Tools.friendlyTime(toreturn.getDate());
+		toreturn.messageCount = cursor.getLong(cursor
+				.getColumnIndex(Column.MESSAGE_COUNT));
+		toreturn.recipientIds = cursor.getString(cursor
+				.getColumnIndex(Column.RECIPIENT_IDS));
 		toreturn.read = cursor.getInt(cursor.getColumnIndex(Column.READ));
 		toreturn.type = cursor.getInt(cursor.getColumnIndex(Column.TYPE));
 		toreturn.error = cursor.getInt(cursor.getColumnIndex(Column.ERROR));
-		toreturn.hasAttachment = cursor.getInt(cursor.getColumnIndex(Column.HAS_ATTACHMENT));
-		toreturn.snippet = cursor.getString(cursor.getColumnIndex(Column.SNIPPET));
+		toreturn.hasAttachment = cursor.getInt(cursor
+				.getColumnIndex(Column.HAS_ATTACHMENT));
+		toreturn.snippet = cursor.getString(cursor
+				.getColumnIndex(Column.SNIPPET));
 		return toreturn;
 	}
 
@@ -54,7 +59,7 @@ public class Conversation implements Serializable {
 		val.put(Column.DATE, this.getDate().getTimeInMillis());
 		val.put(Column.MESSAGE_COUNT, this.getMessageCount());
 		String recipientIds = "";
-		for(Long id : this.getRecipientIds()) {
+		for (Long id : this.getRecipientIds()) {
 			recipientIds += (id + " ");
 		}
 		val.put(Column.RECIPIENT_IDS, recipientIds);
@@ -66,10 +71,10 @@ public class Conversation implements Serializable {
 	}
 
 	private static Conversation[] getAll(Context context, String where) {
-		Cursor cursor = context.getContentResolver().query(Constants.ALL_CONVERSATIONS_URI, 
-				null, where, null, null);
+		Cursor cursor = context.getContentResolver().query(
+				Constants.ALL_CONVERSATIONS_URI, null, where, null, null);
 		ArrayList<Conversation> toreturn = new ArrayList<Conversation>();
-		while(cursor.moveToNext()) {
+		while (cursor.moveToNext()) {
 			toreturn.add(Conversation.fromCursor(context, cursor));
 		}
 		return toreturn.toArray(new Conversation[0]);
@@ -77,7 +82,7 @@ public class Conversation implements Serializable {
 
 	public static Conversation get(Context context, long threadId) {
 		Conversation[] convos = getAll(context, Column._ID + " = " + threadId);
-		if(convos == null || convos.length == 0) {
+		if (convos == null || convos.length == 0) {
 			return null;
 		}
 		return convos[0];
@@ -89,6 +94,7 @@ public class Conversation implements Serializable {
 
 	private long id;
 	private long date;
+	private String dateFriendly;
 	private long messageCount;
 	private String recipientIds;
 	private int read;
@@ -108,6 +114,10 @@ public class Conversation implements Serializable {
 		return cal;
 	}
 
+	public String getDateFriendly() {
+		return dateFriendly;
+	}
+
 	public long getMessageCount() {
 		return messageCount;
 	}
@@ -118,14 +128,14 @@ public class Conversation implements Serializable {
 
 	public ArrayList<Long> getRecipientIds() {
 		ArrayList<Long> toReturn = new ArrayList<Long>();
-		for(String id : recipientIds.split(" ")) {
+		for (String id : recipientIds.split(" ")) {
 			toReturn.add(Long.parseLong(id));
 		}
 		return toReturn;
 	}
 
 	public String getSnippet() {
-		if(snippet != null && snippet.trim().isEmpty()) {
+		if (snippet != null && snippet.trim().isEmpty()) {
 			snippet = null;
 		}
 		return snippet;
@@ -140,13 +150,13 @@ public class Conversation implements Serializable {
 	}
 
 	public boolean isOutgoing(Context context) {
-		ArrayList<Sms> msges = getMessages(context); 
-		if(msges.size() == 0) {
+		ArrayList<Sms> msges = getMessages(context);
+		if (msges.size() == 0) {
 			return false;
 		}
 		return msges.get(0).isOutgoing();
 	}
-	
+
 	public boolean isError() {
 		return (error < -1 || error > 0);
 	}
@@ -160,29 +170,33 @@ public class Conversation implements Serializable {
 	}
 
 	public ArrayList<Sms> getMessages(Context context, boolean cached) {
-		if(!cached) {
+		if (!cached) {
 			smsMessages = null;
 		}
-		if(smsMessages == null || smsMessages.size() == 0) {
+		if (smsMessages == null || smsMessages.size() == 0) {
 			smsMessages = new ArrayList<Sms>();
-			
-			Cursor smsCursor = context.getContentResolver().query(Constants.SMS_ALL, null, 
+
+			Cursor smsCursor = context.getContentResolver().query(
+					Constants.SMS_ALL, null,
 					Sms.Column.THREAD_ID + " = " + getId(), null, null);
-			while(smsCursor.moveToNext()) {
+			while (smsCursor.moveToNext()) {
 				smsMessages.add(Sms.fromCursor(smsCursor));
 			}
 			smsCursor.close();
 
-			Cursor mmsCursor = context.getContentResolver().query(Constants.MMS_ALL, null, 
+			Cursor mmsCursor = context.getContentResolver().query(
+					Constants.MMS_ALL, null,
 					Sms.Column.THREAD_ID + " = " + getId(), null, null);
-			TelephonyManager manager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
+			TelephonyManager manager = (TelephonyManager) context
+					.getSystemService(Context.TELEPHONY_SERVICE);
 			String address = smsMessages.get(0).getAddress();
-			while(mmsCursor.moveToNext()) {
-				Sms mms = Sms.fromCursorMms(mmsCursor, context, manager.getLine1Number(), address);
+			while (mmsCursor.moveToNext()) {
+				Sms mms = Sms.fromCursorMms(mmsCursor, context,
+						manager.getLine1Number(), address);
 				smsMessages.add(mms);
 			}
 			mmsCursor.close();
-			
+
 			Collections.sort(smsMessages, new Sms.SmsReverseComparator());
 		}
 		return smsMessages;
@@ -192,57 +206,69 @@ public class Conversation implements Serializable {
 	 * Marks all SMS messages in the conversation as read.
 	 */
 	public void markMessagesRead(Context context) {
-		Cursor smsCursor = context.getContentResolver().query(Constants.SMS_ALL, null, 
-				Sms.Column.READ + " = 0 AND " + Sms.Column.THREAD_ID + " = " + getId(), null, null);
-		while(smsCursor.moveToNext()) {
+		Cursor smsCursor = context.getContentResolver().query(
+				Constants.SMS_ALL,
+				null,
+				Sms.Column.READ + " = 0 AND " + Sms.Column.THREAD_ID + " = "
+						+ getId(), null, null);
+		while (smsCursor.moveToNext()) {
 			Sms.fromCursor(smsCursor).setIsRead(context, true, true);
 		}
 		smsCursor.close();
 
-		Cursor mmsCursor = context.getContentResolver().query(Constants.MMS_ALL, null, 
-				Sms.Column.READ + " = 0 AND " + Sms.Column.THREAD_ID + " = " + getId(), null, null);
-		while(mmsCursor.moveToNext()) {
-			Sms.fromCursorMms(mmsCursor, context, null, null).setIsRead(context, true, true);
+		Cursor mmsCursor = context.getContentResolver().query(
+				Constants.MMS_ALL,
+				null,
+				Sms.Column.READ + " = 0 AND " + Sms.Column.THREAD_ID + " = "
+						+ getId(), null, null);
+		while (mmsCursor.moveToNext()) {
+			Sms.fromCursorMms(mmsCursor, context, null, null).setIsRead(
+					context, true, true);
 		}
 		mmsCursor.close();
-		
-		for(Sms msg : smsMessages) {
-			msg.setIsRead(context, true, false);
+
+		if(smsMessages != null) {
+			for (Sms msg : smsMessages) {
+				msg.setIsRead(context, true, false);
+			}
 		}
 	}
 
 	/**
-	 * Deletes the conversation from the content resolver, returns number of rows that were deleted (should return 1 if successful).
+	 * Deletes the conversation from the content resolver, returns number of
+	 * rows that were deleted (should return 1 if successful).
 	 */
 	public int delete(Context context) {
 		int toreturn = 0;
-		toreturn += context.getContentResolver().delete(Constants.SMS_ALL, Sms.Column.THREAD_ID + " = " + getId(), null);
-		toreturn += context.getContentResolver().delete(Constants.MMS_ALL, Sms.Column.THREAD_ID + " = " + getId(), null);
+		toreturn += context.getContentResolver().delete(Constants.SMS_ALL,
+				Sms.Column.THREAD_ID + " = " + getId(), null);
+		toreturn += context.getContentResolver().delete(Constants.MMS_ALL,
+				Sms.Column.THREAD_ID + " = " + getId(), null);
 		return toreturn;
 	}
 
 	public static Sms deserializeObject(String input) {
 		try {
 			byte[] data = Base64.decode(input, Base64.DEFAULT);
-			ObjectInputStream ois = new ObjectInputStream( 
+			ObjectInputStream ois = new ObjectInputStream(
 					new ByteArrayInputStream(data));
 			Object o = ois.readObject();
 			ois.close();
-			return (Sms)o;
-		} catch(Exception e) {
+			return (Sms) o;
+		} catch (Exception e) {
 			e.printStackTrace();
 			return null;
 		}
 	}
 
 	public String serializeObject() {
-		try{
+		try {
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			ObjectOutputStream oos = new ObjectOutputStream(baos);
 			oos.writeObject(this);
 			oos.close();
 			return Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT);
-		} catch(Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 			return "";
 		}
