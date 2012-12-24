@@ -1,5 +1,6 @@
 package com.afollestad.smshelper;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
 import android.content.ContentUris;
@@ -10,8 +11,10 @@ import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.ContactsContract.PhoneLookup;
 
-public class Contact {
-
+public class Contact implements Serializable {
+	
+	private static final long serialVersionUID = 7900545052474377060L;
+	
 	public final static String TYPE_GOOGLE_ACCOUNT = "com.google";
 	private final static String TYPE_NORMAL = "contact";	
 	
@@ -164,7 +167,7 @@ public class Contact {
 		return getType().equals(TYPE_GOOGLE_ACCOUNT);
 	}
 	
-	public Uri getContactUri(Context context, ContactCache cache) {
-		return ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, getId());
+	public static Uri getContactUri(Long id) {
+		return ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, id);
 	}
 }

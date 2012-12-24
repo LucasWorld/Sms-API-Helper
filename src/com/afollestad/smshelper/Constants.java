@@ -7,7 +7,7 @@ public class Constants {
 	private static final Uri BASE_CONVERSATIONS_URI = Uri.withAppendedPath(Uri.parse("content://mms-sms/"), "conversations");
 	
 	public static final Uri ALL_CONVERSATIONS_URI = BASE_CONVERSATIONS_URI.buildUpon()
-			.appendQueryParameter("simple", "true").build();
+			.appendQueryParameter("simple", "false").build();
 	
 	public static final Uri MMS_PART = Uri.parse("content://mms/part");
 	

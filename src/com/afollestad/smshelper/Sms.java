@@ -177,14 +177,14 @@ public class Sms implements Serializable, Comparable<Sms> {
 	private String dateSentFriendly;
 	private int protocol;
 	private int read;
-	private int status = Sms.STATUS_NONE;
-	private int type = 1;
+	private int status;
+	private int type = TYPE_SENT;
 	private int replyPathPresent;
 	private String serviceCenter;
 	private String subject;
 	private String body;
 	private int locked;
-	private int errorCode = Sms.ERROR_NONE;
+	private int errorCode;
 	private int seen;
 	private boolean isemail;
 	private boolean isMms;
@@ -413,7 +413,7 @@ public class Sms implements Serializable, Comparable<Sms> {
 
 	public int update(Context context, ContentValues values) {
 		return context.getContentResolver().update(Constants.SMS_ALL, 
-				getContentValues(), Column._ID + "=?", new String[] { Long.toString(getId()) });
+				values, Column._ID + "=?", new String[] { Long.toString(getId()) });
 	}
 
 	public int setErrorAndStatus(Context context, int errorCode, int statusCode, boolean update) {
