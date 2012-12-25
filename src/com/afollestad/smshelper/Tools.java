@@ -16,9 +16,9 @@ public class Tools {
 	}
 	
 	public static String friendlyTimeLong(Calendar time) {
-		String am_pm = "AM";
+		String am_pm = " am";
 		if (time.get(Calendar.AM_PM) == Calendar.PM)
-			am_pm = "PM";
+			am_pm = " pm";
 		String day = Integer.toString(time.get(Calendar.DAY_OF_MONTH));
 		String minute = Integer.toString(time.get(Calendar.MINUTE));
 		int hour = time.get(Calendar.HOUR);
@@ -31,9 +31,9 @@ public class Tools {
 
 	public static String friendlyTime(Calendar time) {
 		Calendar now = Calendar.getInstance();
-		String am_pm = "AM";
+		String am_pm = " am";
 		if (time.get(Calendar.AM_PM) == Calendar.PM)
-			am_pm = "PM";
+			am_pm = " pm";
 		String day = Integer.toString(time.get(Calendar.DAY_OF_MONTH));
 		String minute = Integer.toString(time.get(Calendar.MINUTE));
 		int hour = time.get(Calendar.HOUR);
@@ -48,6 +48,13 @@ public class Tools {
 					if(now.get(Calendar.DAY_OF_MONTH) == time.get(Calendar.DAY_OF_MONTH)) {
 						return hour + ":" + minute + am_pm;
 					} else {
+						int nowDay = now.get(Calendar.DAY_OF_YEAR);
+						int timeDay = time.get(Calendar.DAY_OF_YEAR);
+						if(nowDay == 1 && timeDay == 365) {
+							return "yesterday";
+						} else if((nowDay - 1) == timeDay) {
+							return "yesterday";
+						}
 						return convertMonth(time.get(Calendar.MONTH), true) + " " + day;
 					}
 				} else {
